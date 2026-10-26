@@ -34,7 +34,7 @@ const r1 = (n) => Math.round(n * 10) / 10
 // Entrada para el registro diario a partir de un total calculado
 export const mealEntry = ({ name, icon, kind, total, priced }) => ({
   name, icon, kind,
-  kcal: Math.round(total.kcal), protein: r1(total.protein), fat: r1(total.fat), carbs: r1(total.carbs),
+  kcal: Math.round(total.kcal), protein: r1(total.protein), fat: r1(total.fat), carbs: r1(total.carbs), fiber: r1(total.fiber ?? 0),
   cost: priced ? total.cost : null,
 })
 

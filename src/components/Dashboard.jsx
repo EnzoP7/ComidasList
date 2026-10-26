@@ -7,13 +7,15 @@ import { foodVariants, hasStates, stateLabel } from '../lib/foods'
 import { FoodSearch, MODES, defaultGrams, foodIconOf } from './MealBuilder'
 import StatePicker from './StatePicker'
 import {
-  BODY_MEASURES, TRAINING_TYPES, dayBurn, dayChecks, dayTotals, latestWeight, maintenance, quoteFor, recipeMacros, trainingKcal, trainingType, uid, waterTotal,
+  BODY_MEASURES, dayBurn, dayChecks, dayTotals, latestWeight, quoteFor, recipeMacros, uid, waterTotal,
 } from '../lib/model'
 import DateNav from './DateNav'
 import FeelCard from './FeelCard'
-import { useToast } from './Toast'
+import ActivityCard from './ActivityCard'
+import BarcodeLookup from './Barcode'
+import { CookReminder, FirstSteps, PhaseNotice, Reminders, WeekReport } from './TodayNotices'
 import { detectIcon, recipeIcon } from '../lib/icons'
-import { Button, Card, ChalkNumber, ChalkUnderline, Icon, Input, ProgressBar, SectionTitle, Tally, erase, fmt, num } from './ui'
+import { Button, Card, ChalkNumber, ChalkUnderline, Icon, Input, NumberField, ProgressBar, SectionTitle, Tally, erase, fmt, num } from './ui'
 
 // Atajos de un toque para suplementos habituales
 const PRESETS = [
@@ -25,20 +27,18 @@ const PRESETS = [
 
 export default function Dashboard({
   settings, logs, recipes, prices, favorites = [], date, setDate, updateDay, addMeal, removeMeal, scaleMeal, repeatMeals, eatTupper,
-  goToBatch, goToWater, goToSettings, goToShop, openCreate,
+  phase, setSettings, addCustomFood, goToBatch, goToWater, goToSettings, goToShop, goToStats, openCreate,
 }) {
   const { foods, variants } = useFoods()
   const byId = useMemo(() => new Map(foods.map((f) => [f.id, f])), [foods])
   const day = logs[date] ?? { meals: [] }
-  const { kcal, protein, fat, carbs } = dayTotals(day)
+  const { kcal, protein, fat, carbs, fiber } = dayTotals(day)
   const isToday = date === todayKey()
 
   const prevWeight = latestWeight(logs, addDays(date, -1))
   const currentWeight = day.weight ?? latestWeight(logs, date)
   const weight = currentWeight ?? settings.startWeight
-  const tdee = maintenance(settings, weight)
   const remaining = settings.calorieGoal - kcal
-  const plannedDeficit = tdee - settings.calorieGoal
   const burn = dayBurn(day, settings, weight)
   const balance = kcal - burn.total
   const steps = day.steps ?? 0
@@ -66,6 +66,8 @@ export default function Dashboard({
       <FirstSteps logs={logs} recipes={recipes} favorites={favorites} goToSettings={goToSettings} openCreate={openCreate} />
       {isToday && <WeekReport logs={logs} settings={settings} date={date} />}
       {isToday && <CookReminder recipes={recipes} date={date} goToShop={goToShop} openCreate={openCreate} />}
+      {phase && <PhaseNotice phase={phase} date={date} setSettings={setSettings} />}
+      <Reminders logs={logs} date={date} goToStats={goToStats} />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-7 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-10">
       <div className="space-y-7">
@@ -158,9 +160,10 @@ export default function Dashboard({
       <Fridge available={available} date={date} eatTupper={eatTupper} goToBatch={goToBatch} className="lg:hidden" />
 
       {/* Carbos y grasas, en segundo plano */}
-      <div className="grid max-w-xl grid-cols-2 gap-5">
+      <div className="grid max-w-xl grid-cols-2 gap-5 sm:grid-cols-3">
         <MacroMini label="Carbohidratos" value={carbs} goal={settings.carbsGoal} color="amber" />
         <MacroMini label="Grasas" value={fat} goal={settings.fatGoal} color="pink" />
+        {settings.fiberGoal > 0 && <MacroMini label="Fibra" value={fiber} goal={settings.fiberGoal} color="accent" min />}
       </div>
 
       {/* Nota del día, a tiza en la esquina */}
@@ -225,7 +228,7 @@ export default function Dashboard({
           onEat={(entry) => addMeal(date, entry)} openCreate={openCreate}
         />
         <FeelCard day={day} settings={settings} date={date} onChange={(patch) => updateDay(date, patch)} />
-        <ActivityCard day={day} weight={weight} burn={burn} onChange={(patch) => updateDay(date, patch)} />
+        <ActivityCard day={day} date={date} logs={logs} weight={weight} burn={burn} onChange={(patch) => updateDay(date, patch)} />
       </div>
       </div>
 
@@ -235,13 +238,13 @@ export default function Dashboard({
         <SectionTitle
           action={yesterdayMeals.length > 0 && (
             <Button variant="ghost" size="sm" onClick={() => repeatMeals(yesterday, date)}>
-              <Icon name="refresh" className="h-3.5 w-3.5" /> Repetir lo de ayer ({yesterdayMeals.length})
+              <Icon name="refresh" className="h-3.5 w-3.5" /> Repetir {isToday ? 'lo de ayer' : 'el día anterior'} ({yesterdayMeals.length})
             </Button>
           )}
         >
           {isToday ? 'Lo que comiste hoy' : 'Lo que comiste ese día'}
         </SectionTitle>
-        <QuickFood byId={byId} foods={foods} prices={prices} variants={variants} logs={logs} date={date} onAdd={(meal) => addMeal(date, meal)} />
+        <QuickFood byId={byId} foods={foods} prices={prices} variants={variants} logs={logs} date={date} onAdd={(meal) => addMeal(date, meal)} addCustomFood={addCustomFood} />
         <QuickAdd onAdd={(meal) => addMeal(date, meal)} />
         {day.meals.length === 0 ? (
           <p className="mt-4 text-sm text-zinc-500">Todavía nada anotado. Comé un taper, cargá un desayuno guardado o sumá algo arriba.</p>
@@ -294,129 +297,6 @@ export default function Dashboard({
         )}
       </Card>
     </div>
-  )
-}
-
-// Lunes y martes: cómo fue la semana anterior (lunes a domingo); se cierra por semana
-function WeekReport({ logs, settings, date }) {
-  const dow = (new Date(`${date}T00:00`).getDay() + 6) % 7 // 0 = lunes
-  const lastMonday = addDays(date, -dow - 7)
-  const storeKey = `recomp:ui:weekReport:${lastMonday}`
-  const [hidden, setHidden] = useState(() => {
-    try { return localStorage.getItem(storeKey) === 'closed' } catch { return false }
-  })
-  if (dow > 1 || hidden) return null
-  const days = Array.from({ length: 7 }, (_, i) => addDays(lastMonday, i))
-  const prevDays = Array.from({ length: 7 }, (_, i) => addDays(lastMonday, i - 7))
-  const avg = (xs) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null)
-  const weights = (ds) => ds.map((k) => logs[k]?.weight).filter(Boolean)
-  const w = avg(weights(days)), wPrev = avg(weights(prevDays))
-  const waist = days.map((k) => logs[k]?.waist).filter(Boolean).at(-1)
-  const waistPrev = [...prevDays, ...days.slice(0, -1)].map((k) => logs[k]?.waist).filter(Boolean).at(-1)
-  const checks = days.map((k) => dayChecks(logs[k], settings))
-  const logged = checks.filter((c) => c.logged).length
-  if (!logged) return null
-  const inPlan = checks.filter((c) => c.inPlan).length
-  const proteinDays = days.map((k) => dayTotals(logs[k]).protein).filter((p) => p > 0)
-  const close = () => {
-    try { localStorage.setItem(storeKey, 'closed') } catch { /* sin almacenamiento */ }
-    setHidden(true)
-  }
-  const delta = (a, b, unit) => (a != null && b != null ? `${a - b > 0 ? '+' : '−'}${fmt(Math.abs(a - b), 1)} ${unit}` : null)
-  const rows = [
-    { label: 'Peso medio', value: w ? `${fmt(w, 1)} kg` : '—', note: delta(w, wPrev, 'kg'), good: w != null && wPrev != null && w <= wPrev },
-    { label: 'Cintura', value: waist ? `${fmt(waist, 1)} cm` : '—', note: waist !== waistPrev ? delta(waist, waistPrev, 'cm') : null, good: waist != null && waistPrev != null && waist <= waistPrev },
-    { label: 'Días dentro del plan', value: `${inPlan} de 7`, note: `${logged} anotados`, good: inPlan >= 4 },
-    { label: 'Proteína media', value: proteinDays.length ? `${fmt(avg(proteinDays))} g` : '—', note: `meta ${settings.proteinGoal} g`, good: avg(proteinDays) >= settings.proteinGoal * 0.95 },
-  ]
-  return (
-    <section className="rounded-[14px] bg-ink-900 p-4 shadow-[inset_0_1px_0_rgb(238_237_230/0.05)]" aria-label="Resumen de la semana pasada">
-      <div className="flex items-start justify-between gap-3">
-        <p className="font-hand text-[26px] leading-none text-zinc-50">La semana pasada</p>
-        <Button variant="plain" size="sm" onClick={close}>Cerrar</Button>
-      </div>
-      <dl className="mt-3 grid grid-cols-2 gap-x-5 gap-y-3">
-        {rows.map((r) => (
-          <div key={r.label}>
-            <dt className="text-xs text-zinc-500">{r.label}</dt>
-            <dd className="mt-0.5 text-xl font-bold leading-none">{r.value}</dd>
-            {r.note && <dd className={`mt-1 text-xs ${r.good ? 'text-accent' : 'text-zinc-500'}`}>{r.note}</dd>}
-          </div>
-        ))}
-      </dl>
-      <p className="mt-3 font-hand text-[21px] leading-snug text-zinc-300">
-        {inPlan >= 5 ? 'Semana de pizarra limpia. Así se van los flancos.' : inPlan >= 3 ? 'Buena base. Esta semana, un día más dentro del plan.' : 'Semana floja: no pasa nada, la constancia se arma de nuevo hoy.'}
-      </p>
-    </section>
-  )
-}
-
-// Aviso de cocinada: pocos tapers en la heladera (o fin de semana con la heladera floja)
-function CookReminder({ recipes, date, goToShop, openCreate }) {
-  const left = recipes.filter((r) => !r.frozenAt).reduce((s, r) => s + r.remaining, 0)
-  const frozen = recipes.filter((r) => r.frozenAt).reduce((s, r) => s + r.remaining, 0)
-  const dow = new Date(`${date}T00:00`).getDay() // 0 domingo, 6 sábado
-  const weekend = dow === 0 || dow === 6
-  if (!recipes.length || left > (weekend ? 5 : 2)) return null
-  return (
-    <section className="flex flex-wrap items-center gap-3 rounded-xl border border-dashed border-amber-300/40 px-3.5 py-3" aria-label="Aviso de cocinada">
-      <div className="min-w-0 flex-1">
-        <p className="font-hand text-[21px] leading-none text-amber-300">{left === 0 ? 'Heladera vacía' : 'Se vacía la heladera'}</p>
-        <p className="mt-1 text-sm text-zinc-300">
-          {left === 0 ? 'No quedan tapers listos.' : `Quedan ${left} ${left === 1 ? 'taper' : 'tapers'}.`}
-          {frozen > 0 && ` Tenés ${frozen} en el freezer.`} {weekend ? 'Buen momento para la cocinada de la semana.' : 'Planificá la próxima cocinada.'}
-        </p>
-      </div>
-      <div className="flex gap-2">
-        <Button variant="ghost" size="sm" onClick={goToShop}><Icon name="cart" className="h-3.5 w-3.5" /> Lista de compras</Button>
-        <Button size="sm" onClick={() => openCreate('tupper')}>Crear lote</Button>
-      </div>
-    </section>
-  )
-}
-
-// Guía de primeros pasos: solo mientras la app está vacía; se puede cerrar
-function FirstSteps({ logs, recipes, favorites, goToSettings, openCreate }) {
-  const [hidden, setHidden] = useState(() => {
-    try { return localStorage.getItem('recomp:ui:firstSteps') === 'done' } catch { return false }
-  })
-  const anyWeight = Object.values(logs).some((d) => d?.weight)
-  const anyMeal = Object.values(logs).some((d) => d?.meals?.length)
-  const steps = [
-    { done: false, label: 'Revisá tu plan', note: 'Edad, altura, peso y nivel de déficit', action: goToSettings, cta: 'Ajustes' },
-    { done: recipes.length > 0 || favorites.length > 0, label: 'Armá tu primer taper', note: 'O un desayuno de siempre', action: () => openCreate('tupper'), cta: 'Crear' },
-    { done: anyWeight, label: 'Anotá tu peso', note: 'Abajo, en Peso: en ayunas' },
-    { done: anyMeal, label: 'Anotá lo que comés', note: 'Un taper, un desayuno guardado o un alimento' },
-  ]
-  if (hidden || (anyMeal && anyWeight && recipes.length > 0)) return null
-  const close = () => {
-    try { localStorage.setItem('recomp:ui:firstSteps', 'done') } catch { /* sin almacenamiento */ }
-    setHidden(true)
-  }
-  return (
-    <section className="rounded-[14px] bg-ink-900 p-4 shadow-[inset_0_1px_0_rgb(238_237_230/0.05)]" aria-label="Primeros pasos">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="font-hand text-[26px] leading-none text-zinc-50">Primeros pasos</p>
-          <p className="mt-1 text-sm text-zinc-400">Cuatro cosas y la pizarra empieza a trabajar para vos.</p>
-        </div>
-        <Button variant="plain" size="sm" onClick={close}>Cerrar</Button>
-      </div>
-      <ol className="mt-3 divide-y divide-dashed divide-white/[0.1]">
-        {steps.map((s, i) => (
-          <li key={s.label} className="flex items-center gap-3 py-2.5">
-            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-bold ${s.done ? 'bg-accent text-ink-950' : 'border border-dashed border-white/30 text-zinc-400'}`}>
-              {s.done ? <Icon name="check" className="h-3.5 w-3.5" strokeWidth={2.6} /> : i + 1}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className={`block text-[15px] ${s.done ? 'text-zinc-500 line-through' : 'text-zinc-100'}`}>{s.label}</span>
-              <span className="block text-xs text-zinc-500">{s.note}</span>
-            </span>
-            {s.action && !s.done && <Button variant="ghost" size="sm" onClick={s.action}>{s.cta}</Button>}
-          </li>
-        ))}
-      </ol>
-    </section>
   )
 }
 
@@ -502,7 +382,8 @@ function Renglon({ label, value, unit, ratio, marker, tone, done, note, action }
   )
 }
 
-function MacroMini({ label, value, goal, color }) {
+// min: la meta es un mínimo (fibra), pasarse no es un problema
+function MacroMini({ label, value, goal, color, min = false }) {
   const left = goal - value
   return (
     <div>
@@ -511,8 +392,8 @@ function MacroMini({ label, value, goal, color }) {
         <span className="tabular whitespace-nowrap text-xs text-zinc-500"><b className="text-zinc-200">{fmt(value)}</b> / {fmt(goal)} g</span>
       </div>
       <ProgressBar value={value} max={goal} tone={color} size="sm" />
-      <p className={`mt-1.5 text-xs ${left < -goal * 0.1 ? 'text-rose-300' : 'text-zinc-500'}`}>
-        {left >= 0 ? `faltan ${fmt(left)} g` : `te pasaste ${fmt(-left)} g`}
+      <p className={`mt-1.5 text-xs ${!min && left < -goal * 0.1 ? 'text-rose-300' : 'text-zinc-500'}`}>
+        {left >= 0 ? `faltan ${fmt(left)} g` : min ? 'meta cumplida' : `te pasaste ${fmt(-left)} g`}
       </p>
     </div>
   )
@@ -583,83 +464,6 @@ function QuickMeals({ favorites, byId, prices, variants, onEat, openCreate }) {
   )
 }
 
-// Entrenamientos del día + kcal activas opcionales del reloj
-function ActivityCard({ day, weight, burn, onChange }) {
-  const [type, setType] = useState('strength')
-  const [minutes, setMinutes] = useState('60')
-  const sessions = day.training ?? []
-  const toast = useToast()
-  const removeSession = (s) => {
-    onChange({ training: sessions.filter((x) => x.id !== s.id) })
-    toast(`Quitaste ${trainingType(s.type).label} · ${s.minutes} min`, () => onChange({ training: [...sessions] }))
-  }
-
-  const add = (t, m) => {
-    if (!m) return
-    onChange({ training: [...sessions, { id: uid(), type: t, minutes: m }] })
-  }
-
-  return (
-    <Card variant="ruled">
-      <SectionTitle action={<span className="text-xs text-zinc-500">{burn.manual != null ? 'según tu reloj' : 'estimación'}</span>}>Actividad</SectionTitle>
-      <p className="flex items-baseline gap-2">
-        <ChalkNumber value={fmt(burn.active)} className="text-5xl font-bold leading-none text-orange-300" />
-        <span className="font-hand text-[26px] text-zinc-400">kcal quemadas</span>
-      </p>
-      <p className="tabular mt-1.5 text-xs text-zinc-500">pasos {fmt(burn.steps)} kcal · entrenamiento {fmt(burn.training)} kcal</p>
-
-      {sessions.length > 0 && (
-        <ul className="mt-3 space-y-1.5">
-          {sessions.map((s) => {
-            const t = trainingType(s.type)
-            return (
-              <li key={s.id} className="flex items-center gap-2 border-b border-dashed border-white/[0.1] py-1.5 text-sm last:border-b-0">
-                <span className="text-base leading-none">{t.icon}</span>
-                <span className="flex-1">{t.label} · {s.minutes} min</span>
-                <span className="tabular text-xs text-orange-300">{fmt(trainingKcal(s, weight))} kcal</span>
-                <button onClick={(e) => erase(e.currentTarget.closest('li'), () => removeSession(s))} className="grid h-8 w-8 place-items-center text-zinc-500 hover:text-zinc-100" aria-label={`Quitar ${t.label}`}>
-                  <Icon name="x" className="h-3.5 w-3.5" />
-                </button>
-              </li>
-            )
-          })}
-        </ul>
-      )}
-
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {[['strength', 45], ['strength', 60], ['strength', 75], ['cardio', 30]].map(([t, m]) => (
-          <Button key={`${t}${m}`} variant="ghost" size="sm" onClick={() => add(t, m)}>
-            {trainingType(t).label.split(' ')[0]} {m}′
-          </Button>
-        ))}
-      </div>
-      <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); add(type, Math.round(num(minutes) ?? 0)) }}>
-        <select
-          value={type} onChange={(e) => setType(e.target.value)}
-          className="h-10 min-w-0 flex-1 rounded-lg border border-white/[0.1] bg-black/[0.18] px-2 text-sm outline-none focus:border-accent/70" aria-label="Tipo de entrenamiento"
-        >
-          {TRAINING_TYPES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
-        </select>
-        <Input className="w-24" type="number" inputMode="numeric" suffix="min" value={minutes} onChange={(e) => setMinutes(e.target.value)} aria-label="Minutos" />
-        <Button type="submit" variant="ghost" size="icon" className="h-10 w-10" aria-label="Añadir entrenamiento"><Icon name="plus" className="h-4 w-4" /></Button>
-      </form>
-
-      <details className="mt-3 text-xs text-zinc-500">
-        <summary className="cursor-pointer select-none hover:text-zinc-300">¿Tenés reloj o app de actividad?</summary>
-        <div className="mt-2 flex items-end gap-2">
-          <NumberField
-            key={`active-${day.activeKcal}`} value={day.activeKcal} placeholder="kcal activas" suffix="kcal"
-            onCommit={(v) => onChange({ activeKcal: v == null ? null : Math.round(v) })} className="flex-1"
-          />
-          {day.activeKcal != null && <Button variant="plain" size="sm" onClick={() => onChange({ activeKcal: null })}>Usar estimación</Button>}
-        </div>
-        <p className="mt-1.5">Si lo cargás, reemplaza la estimación por pasos y entrenamiento.</p>
-      </details>
-    </Card>
-  )
-}
-
-// Input numérico que guarda al salir del campo o al pulsar Enter
 // Cadera, pecho y brazo: opcionales, una vez cada dos semanas alcanza
 function MoreMeasures({ logs, date, day, onCommit }) {
   const extra = BODY_MEASURES.filter((m) => m.key !== 'waist')
@@ -696,25 +500,10 @@ function MoreMeasures({ logs, date, day, onCommit }) {
   )
 }
 
-function NumberField({ value, onCommit, ...props }) {
-  const [draft, setDraft] = useState(value ?? '')
-  const commit = () => {
-    const v = num(draft)
-    if (v !== (value ?? null)) onCommit(v)
-  }
-  return (
-    <Input
-      type="number" inputMode="decimal" value={draft}
-      onChange={(e) => setDraft(e.target.value)} onBlur={commit}
-      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
-      {...props}
-    />
-  )
-}
-
 // Buscar un alimento de la base y anotarlo por gramos, sin salir de Hoy
-function QuickFood({ foods, byId, prices, variants, logs, date, onAdd }) {
+function QuickFood({ foods, byId, prices, variants, logs, date, onAdd, addCustomFood }) {
   const [picked, setPicked] = useState(null)
+  const [scan, setScan] = useState(false)
   const [grams, setGrams] = useState('')
   const [state, setState] = useState('raw')
   const g = num(grams) ?? 0
@@ -735,8 +524,20 @@ function QuickFood({ foods, byId, prices, variants, logs, date, onAdd }) {
 
   return (
     <div className="mb-3">
-      <FoodSearch foods={foods} groups={MODES.meal.groups} onPick={pick} placeholder="Buscar en Alimentos y anotar por gramos…" />
-      {!picked && <RecentFoods logs={logs} date={date} byId={byId} prices={prices} variants={variants} onAdd={onAdd} />}
+      <div className="flex gap-2">
+        <div className="min-w-0 flex-1"><FoodSearch foods={foods} groups={MODES.meal.groups} onPick={pick} placeholder="Buscar en Alimentos y anotar por gramos…" /></div>
+        {addCustomFood && (
+          <Button variant="ghost" className="h-10 shrink-0" onClick={() => setScan((s) => !s)} aria-expanded={scan} aria-label="Buscar por código de barras">
+            <Icon name="barcode" className="h-4 w-4" /><span className="hidden sm:inline">Código</span>
+          </Button>
+        )}
+      </div>
+      {scan && (
+        <BarcodeLookup
+          foods={foods} onSave={addCustomFood} onUse={pick} onClose={() => setScan(false)} useLabel="Anotar por gramos"
+        />
+      )}
+      {!picked && !scan && <RecentFoods logs={logs} date={date} byId={byId} prices={prices} variants={variants} onAdd={onAdd} />}
       {picked && (
         <div className="drawer-in mt-2 rounded-xl border border-dashed border-white/[0.18] p-3">
           <div className="flex items-center gap-2.5">

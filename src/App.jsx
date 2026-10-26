@@ -1,7 +1,8 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
-import { usePersistentState } from './lib/storage'
-import { todayKey } from './lib/date'
-import { DEFAULT_SETTINGS, computePlan, emptyDay, planWeight, recipeMacros, uid } from './lib/model'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { SAVE_ERROR_EVENT, downloadBackup, requestPersistence, usePersistentState } from './lib/storage'
+import { addDays, formatShort, todayKey } from './lib/date'
+import { DEFAULT_SETTINGS, computePlan, emptyDay, goalsOf, planWeight, recipeMacros, sameGoals, uid } from './lib/model'
+import { phaseStatus } from './lib/progress'
 import { recipeIcon } from './lib/icons'
 import { recipeCost } from './lib/prices'
 import { buildCatalog, catalogVariants } from './lib/foods'
@@ -53,21 +54,52 @@ export default function App() {
   const [shopping, setShopping] = usePersistentState('shopping', { plan: {}, checked: {}, extras: [] })
   const [date, setDate] = useState(todayKey)
   const [moreOpen, setMoreOpen] = useState(false)
+  const [saveError, setSaveError] = useState(false)
   const toast = useToast()
 
-  // Copia de seguridad automática del día (se guardan las últimas 7)
-  useEffect(() => { takeDailySnapshot(todayKey()) }, [])
+  // Copia automática del día (últimas 14, en IndexedDB) y pedido de almacenamiento persistente
+  useEffect(() => {
+    takeDailySnapshot(todayKey())
+    requestPersistence()
+    const onError = () => setSaveError(true)
+    window.addEventListener(SAVE_ERROR_EVENT, onError)
+    return () => window.removeEventListener(SAVE_ERROR_EVENT, onError)
+  }, [])
 
   // Las metas de calorías y macros salen del plan calculado en Ajustes
   const baseSettings = { ...DEFAULT_SETTINGS, ...settingsRaw }
-  const plan = computePlan(baseSettings, planWeight(baseSettings, logs, todayKey()))
+  const phase = phaseStatus(baseSettings, todayKey())
+  const plan = computePlan(baseSettings, planWeight(baseSettings, logs, todayKey()), { onBreak: phase.status === 'break' })
   const settings = {
     ...baseSettings,
     calorieGoal: plan.calorieGoal,
     proteinGoal: plan.macros.protein,
     fatGoal: plan.macros.fat,
     carbsGoal: plan.macros.carbs,
+    fiberGoal: plan.fiber,
   }
+
+  // Cada día guarda las metas con las que se vivió: cambiar el plan no reescribe el historial.
+  // Los días viejos sin metas toman las actuales una vez; hoy sigue al plan si cambia.
+  const goals = goalsOf(settings)
+  const goalsRef = useRef(goals)
+  goalsRef.current = goals
+  const goalsSig = JSON.stringify(goals)
+  useEffect(() => {
+    const today = todayKey()
+    setLogs((prev) => {
+      let changed = false
+      const next = { ...prev }
+      for (const [k, d] of Object.entries(prev)) {
+        if (!d) continue
+        if (!d.goals || (k === today && !sameGoals(d.goals, goalsRef.current))) {
+          next[k] = { ...d, goals: goalsRef.current }
+          changed = true
+        }
+      }
+      return changed ? next : prev
+    })
+  }, [goalsSig, setLogs])
   const foodsValue = useMemo(() => {
     const foods = buildCatalog(foodState)
     return { foods, variants: catalogVariants(foods) }
@@ -78,11 +110,18 @@ export default function App() {
   const updateDay = useCallback(
     (key, patch) =>
       setLogs((prev) => {
-        const day = { ...emptyDay(), ...prev[key] }
+        const day = { ...emptyDay(), goals: goalsRef.current, ...prev[key] }
         return { ...prev, [key]: { ...day, ...(typeof patch === 'function' ? patch(day) : patch) } }
       }),
     [setLogs],
   )
+
+  // Alimento propio nuevo (por ejemplo, escaneado): se guarda y se devuelve listo para usar
+  const addCustomFood = (food) => {
+    const saved = { ...food, id: `custom-${uid()}` }
+    setFoodState((s) => ({ ...s, custom: [...(s.custom ?? []), saved] }))
+    return { ...saved, custom: true }
+  }
 
   const addMeal = (key, meal) =>
     updateDay(key, (day) => ({ meals: [...day.meals, { id: uid(), at: Date.now(), ...meal }] }))
@@ -114,11 +153,11 @@ export default function App() {
       meals: day.meals.map((m) => {
         if (m.id !== mealId) return m
         const prev = m.factor ?? 1
-        const base = m.base ?? { kcal: m.kcal / prev, protein: m.protein / prev, fat: (m.fat ?? 0) / prev, carbs: (m.carbs ?? 0) / prev, cost: m.cost != null ? m.cost / prev : null }
+        const base = m.base ?? { kcal: m.kcal / prev, protein: m.protein / prev, fat: (m.fat ?? 0) / prev, carbs: (m.carbs ?? 0) / prev, fiber: (m.fiber ?? 0) / prev, cost: m.cost != null ? m.cost / prev : null }
         const r1 = (n) => Math.round(n * 10) / 10
         return {
           ...m, base, factor,
-          kcal: Math.round(base.kcal * factor), protein: r1(base.protein * factor), fat: r1(base.fat * factor), carbs: r1(base.carbs * factor),
+          kcal: Math.round(base.kcal * factor), protein: r1(base.protein * factor), fat: r1(base.fat * factor), carbs: r1(base.carbs * factor), fiber: r1((base.fiber ?? 0) * factor),
           cost: base.cost != null ? base.cost * factor : null,
         }
       }),
@@ -143,7 +182,8 @@ export default function App() {
     })
     updateDay(toKey, (day) => ({ meals: [...day.meals, ...copies] }))
     setRecipes((prev) => prev.map((r) => (left.has(r.id) ? { ...r, remaining: left.get(r.id) } : r)))
-    toast(`Copiaste ${copies.length} ${copies.length === 1 ? 'comida' : 'comidas'} de ayer`, () => {
+    const from = fromKey === addDays(todayKey(), -1) ? 'de ayer' : fromKey === addDays(toKey, -1) ? 'del día anterior' : `del ${formatShort(fromKey)}`
+    toast(`Copiaste ${copies.length} ${copies.length === 1 ? 'comida' : 'comidas'} ${from}`, () => {
       setLogs((prev) => {
         const next = { ...prev }
         if (prevDay) next[toKey] = prevDay
@@ -155,9 +195,9 @@ export default function App() {
   }
 
   const eatTupper = (key, recipe) => {
-    const { kcal, protein, fat, carbs } = recipeMacros(recipe)
+    const { kcal, protein, fat, carbs, fiber } = recipeMacros(recipe)
     const cost = recipeCost(recipe, prices, foodsValue.variants)?.perPortion ?? null
-    addMeal(key, { recipeId: recipe.id, kind: 'tupper', name: recipe.name, icon: recipeIcon(recipe), kcal, protein, fat, carbs, cost })
+    addMeal(key, { recipeId: recipe.id, kind: 'tupper', name: recipe.name, icon: recipeIcon(recipe), kcal, protein, fat, carbs, fiber, cost })
     setRecipes((prev) => prev.map((r) => (r.id === recipe.id ? { ...r, remaining: Math.max(0, r.remaining - 1) } : r)))
   }
 
@@ -226,6 +266,8 @@ export default function App() {
     })
 
   const shared = { settings, plan, logs, recipes, prices, date }
+  // En Hoy, un día pasado se muestra con las metas que tenía ese día
+  const daySettings = { ...settings, ...logs[date]?.goals }
   const current = TABS.find((t) => t.id === tab) ?? TABS[0]
 
   return (
@@ -261,11 +303,26 @@ export default function App() {
           </nav>
         </header>
 
+        {saveError && (
+          <div role="alert" className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border border-rose-300/50 bg-rose-500/10 px-3.5 py-3">
+            <p className="min-w-0 flex-1 text-sm text-rose-100">
+              <b>No se pudo guardar.</b> El navegador se quedó sin espacio o bloqueó el almacenamiento: lo último que cargaste puede perderse al cerrar. Descargá una copia ahora.
+            </p>
+            <div className="flex gap-2">
+              <button className="rounded-xl bg-rose-200 px-3 py-1.5 text-sm font-bold text-ink-950" onClick={downloadBackup}>Exportar copia</button>
+              <button className="px-2 text-sm text-rose-200 underline decoration-dashed underline-offset-4" onClick={() => setSaveError(false)}>Cerrar</button>
+            </div>
+          </div>
+        )}
+
         <main>
           <Suspense fallback={<p className="py-16 text-center font-hand text-[26px] text-zinc-500">Borrando la pizarra…</p>}>
           {tab === 'today' && (
             <Dashboard
               {...shared}
+              settings={daySettings}
+              phase={phase}
+              setSettings={setSettings}
               setDate={setDate}
               updateDay={updateDay}
               addMeal={addMeal}
@@ -278,6 +335,18 @@ export default function App() {
               goToWater={() => go('water')}
               goToSettings={() => go('settings')}
               goToShop={() => go('shop')}
+              addCustomFood={addCustomFood}
+              goToStats={() => {
+                go('stats')
+                // Progreso se carga aparte: espera a que aparezcan las fotos para bajar hasta ellas
+                let tries = 0
+                const scroll = () => {
+                  const el = document.getElementById('fotos')
+                  if (el) el.scrollIntoView({ behavior: 'smooth' })
+                  else if (tries++ < 20) setTimeout(scroll, 100)
+                }
+                setTimeout(scroll, 50)
+              }}
               openCreate={openCreate}
             />
           )}
@@ -318,6 +387,7 @@ export default function App() {
               createLabel={{ tupper: 'taper', breakfast: 'desayuno', snack: 'merienda', meal: 'comida' }[createMode]}
               foodState={foodState}
               setFoodState={setFoodState}
+              addCustomFood={addCustomFood}
               goToBuilder={() => go('build')}
             />
           )}
@@ -330,7 +400,7 @@ export default function App() {
           {tab === 'prices' && (
             <Spending {...shared} setPrices={setPrices} expenses={expenses} setExpenses={setExpenses} setSettings={setSettings} />
           )}
-          {tab === 'settings' && <Settings settings={baseSettings} plan={plan} logs={logs} setSettings={setSettings} />}
+          {tab === 'settings' && <Settings settings={baseSettings} plan={plan} phase={phase} logs={logs} setSettings={setSettings} />}
           </Suspense>
         </main>
 

@@ -1,18 +1,31 @@
-import { useRef, useState } from 'react'
-import { exportAll, importAll } from '../lib/storage'
+import { useEffect, useRef, useState } from 'react'
+import { downloadBackup, importAll, lastExportAt } from '../lib/storage'
 import { listSnapshots, restoreSnapshot, snapshotSize } from '../lib/snapshots'
-import { fromKey } from '../lib/date'
-import { todayKey } from '../lib/date'
+import { clearPhotos } from '../lib/photos'
+import { addDays, formatLong, fromKey, todayKey } from '../lib/date'
 import { ACTIVITY_LEVELS, DEFAULT_SETTINGS, dayTotals, latestWeight, waterTotal } from '../lib/model'
+import { adaptiveTdee, startBreak } from '../lib/progress'
 import { Button, Card, Input, PageHeader, SectionTitle, fmt, num } from './ui'
 
 const MACRO_COLORS = { protein: 'bg-sky-400', fat: 'bg-pink-400', carbs: 'bg-amber-400' }
 
-export default function Settings({ settings, plan, logs, setSettings }) {
+export default function Settings({ settings, plan, phase, logs, setSettings }) {
   const [msg, setMsg] = useState('')
+  const [snapshots, setSnapshots] = useState(null)
+  const [storage, setStorage] = useState(null)
   const fileRef = useRef(null)
   const set = (patch) => setSettings((s) => ({ ...s, ...patch }))
-  const logged = latestWeight(logs, todayKey())
+  const today = todayKey()
+  const logged = latestWeight(logs, today)
+  const measured = adaptiveTdee(logs, addDays(today, -1))
+  const exported = lastExportAt()
+
+  useEffect(() => {
+    listSnapshots().then(setSnapshots)
+    Promise.all([navigator.storage?.persisted?.(), navigator.storage?.estimate?.()])
+      .then(([persisted, estimate]) => setStorage({ persisted: Boolean(persisted), used: estimate?.usage, quota: estimate?.quota }))
+      .catch(() => setStorage(null))
+  }, [])
 
   const setNum = (key, raw, min = 0) => {
     const v = num(raw)
@@ -20,23 +33,20 @@ export default function Settings({ settings, plan, logs, setSettings }) {
   }
 
   const download = () => {
-    const blob = new Blob([JSON.stringify(exportAll(), null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `recomp-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(a.href)
+    downloadBackup()
+    setMsg('')
   }
 
   // Historial diario en CSV (separador ; y coma decimal, como lo abre Excel en Uruguay)
   const downloadCsv = () => {
     const n = (v, d = 1) => (v == null || v === '' ? '' : String(Math.round(v * 10 ** d) / 10 ** d).replace('.', ','))
-    const header = ['fecha', 'peso_kg', 'cintura_cm', 'cadera_cm', 'pecho_cm', 'brazo_cm', 'kcal', 'proteina_g', 'grasas_g', 'carbos_g', 'pasos', 'agua_l', 'entreno_min', 'sueno_h', 'hambre_1a5', 'energia_1a5']
+    const header = ['fecha', 'peso_kg', 'cintura_cm', 'cadera_cm', 'pecho_cm', 'brazo_cm', 'kcal', 'proteina_g', 'grasas_g', 'carbos_g', 'fibra_g', 'pasos', 'agua_l', 'entreno_min', 'series_fuerza', 'sueno_h', 'hambre_1a5', 'energia_1a5', 'meta_kcal', 'meta_proteina_g']
     const rows = Object.keys(logs).sort().map((k) => {
       const d = logs[k]
       const t = dayTotals(d)
       const mins = (d.training ?? []).reduce((s, x) => s + (x.minutes || 0), 0)
-      return [k, n(d.weight), n(d.waist), n(d.hips), n(d.chest), n(d.arm), n(t.kcal, 0), n(t.protein), n(t.fat), n(t.carbs), d.steps ?? '', n(waterTotal(d) / 1000, 2), mins || '', n(d.sleep, 2), d.hunger ?? '', d.energy ?? '']
+      const sets = (d.training ?? []).reduce((s, x) => s + (x.sets?.length ?? 0), 0)
+      return [k, n(d.weight), n(d.waist), n(d.hips), n(d.chest), n(d.arm), n(t.kcal, 0), n(t.protein), n(t.fat), n(t.carbs), n(t.fiber), d.steps ?? '', n(waterTotal(d) / 1000, 2), mins || '', sets || '', n(d.sleep, 2), d.hunger ?? '', d.energy ?? '', d.goals?.calorieGoal ?? '', d.goals?.proteinGoal ?? '']
     })
     const csv = [header, ...rows].map((r) => r.join(';')).join('\n')
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' })
@@ -58,11 +68,11 @@ export default function Settings({ settings, plan, logs, setSettings }) {
     }
   }
 
-  const reset = () => {
-    if (confirm('Esto borra TODOS tus registros, recetas y ajustes. ¿Seguro?')) {
-      Object.keys(localStorage).filter((k) => k.startsWith('recomp:')).forEach((k) => localStorage.removeItem(k))
-      location.reload()
-    }
+  const reset = async () => {
+    if (!confirm('Esto borra TODOS tus registros, recetas, ajustes y fotos. Las copias automáticas se mantienen por si querés volver atrás. ¿Seguro?')) return
+    Object.keys(localStorage).filter((k) => k.startsWith('recomp:')).forEach((k) => localStorage.removeItem(k))
+    try { await clearPhotos() } catch { /* sin IndexedDB */ }
+    location.reload()
   }
 
   // Inputs que guardan al salir del campo; la key los resetea si el valor cambia desde fuera
@@ -138,8 +148,9 @@ export default function Settings({ settings, plan, logs, setSettings }) {
         </div>
         <p className="mt-3 text-xs leading-relaxed text-zinc-500">
           Mifflin-St Jeor: 10 × {fmt(plan.weight, 1)} kg + 6,25 × {fmt(settings.heightCm, 1)} cm − 5 × {settings.age} años + 5 = {fmt(plan.bmr)} kcal ·
-          × {settings.activity} de actividad = <span className="text-zinc-300">{fmt(plan.tdee)} kcal/día</span>.
+          × {settings.activity} de actividad = <span className="text-zinc-300">{fmt(plan.formulaTdee)} kcal/día</span>.
         </p>
+        <MeasuredMaintenance measured={measured} plan={plan} settings={settings} set={set} />
       </Card>
 
       {/* 3. Nivel de déficit */}
@@ -214,6 +225,8 @@ export default function Settings({ settings, plan, logs, setSettings }) {
         </p>
       </Card>
 
+      <PhaseCard phase={phase} settings={settings} set={set} today={today} />
+
       {/* 4. Macros */}
       <Card>
         <SectionTitle>4 · Tus macros diarios</SectionTitle>
@@ -265,6 +278,13 @@ export default function Settings({ settings, plan, logs, setSettings }) {
           {field('waterGoal', 'Agua', 'L', 0)}
           {field('sleepGoal', 'Sueño', 'h', 0)}
         </div>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <OptionalField settings={settings} set={set} name="goalWeight" label="Peso meta" suffix="kg" />
+          <OptionalField settings={settings} set={set} name="goalWaist" label="Cintura meta" suffix="cm" />
+          {field('fiberPer1000', 'Fibra cada 1.000 kcal', 'g', 0)}
+          <p className="self-end pb-2 text-xs text-zinc-500">Meta de fibra: <b className="text-zinc-300">{plan.fiber} g/día</b></p>
+        </div>
+        <p className="mt-2 text-xs text-zinc-500">Con peso y cintura meta, Progreso te dice en qué fecha llegás al ritmo actual.</p>
         <p className="mt-2 text-xs text-zinc-500">Dormir 7–9 h ayuda a controlar el hambre y a no perder músculo en el déficit.</p>
         {(() => {
           const rec = Math.round((plan.weight * 0.035) * 10) / 10
@@ -279,12 +299,14 @@ export default function Settings({ settings, plan, logs, setSettings }) {
 
       <Card>
         <SectionTitle>Copias automáticas</SectionTitle>
-        <p className="mb-3 text-sm text-zinc-400">Cada día que abrís la app se guarda una copia en este navegador (las últimas 7). Si algo sale mal, volvé a una.</p>
-        {listSnapshots().length === 0 ? (
+        <p className="mb-3 text-sm text-zinc-400">Cada día que abrís la app se guarda una copia en este navegador (las últimas 14). Si algo sale mal, volvé a una.</p>
+        {snapshots == null ? (
+          <p className="text-sm text-zinc-500">Buscando copias…</p>
+        ) : snapshots.length === 0 ? (
           <p className="text-sm text-zinc-500">Todavía no hay copias.</p>
         ) : (
           <ul className="divide-y divide-dashed divide-white/[0.1]">
-            {[...listSnapshots()].reverse().map((s) => (
+            {[...snapshots].reverse().map((s) => (
               <li key={s.day} className="flex items-center gap-3 py-2.5">
                 <span className="flex-1 text-[15px] first-letter:uppercase">
                   {fromKey(s.day).toLocaleDateString('es-UY', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -294,7 +316,7 @@ export default function Settings({ settings, plan, logs, setSettings }) {
                   variant="ghost" size="sm"
                   onClick={() => {
                     if (!confirm('Vas a reemplazar tus datos actuales por los de esa copia. ¿Seguir?')) return
-                    try { restoreSnapshot(s.day); location.reload() } catch (err) { setMsg(err.message) }
+                    restoreSnapshot(s.day).then(() => location.reload(), (err) => setMsg(err.message))
                   }}
                 >
                   Restaurar
@@ -308,8 +330,17 @@ export default function Settings({ settings, plan, logs, setSettings }) {
       <Card>
         <SectionTitle>Datos</SectionTitle>
         <p className="mb-3 text-sm text-zinc-400">
-          Todo se guarda en este navegador (localStorage). Exportá una copia de vez en cuando o para pasar tus datos a otro dispositivo.
+          Todo se guarda en este navegador. Exportá una copia de vez en cuando o para pasar tus datos a otro navegador.
+          {' '}<span className={exported && Date.now() - exported < 7 * 864e5 ? 'text-zinc-400' : 'text-amber-300'}>
+            {exported ? `Última copia descargada: ${new Date(exported).toLocaleDateString('es-UY', { day: 'numeric', month: 'long' })}.` : 'Todavía no descargaste ninguna copia.'}
+          </span>
         </p>
+        {storage && (
+          <p className="mb-3 text-xs text-zinc-500">
+            {storage.persisted ? 'El navegador marcó tus datos como persistentes: no los borra para liberar espacio.' : 'El navegador puede borrar estos datos si necesita espacio: por eso conviene exportar.'}
+            {storage.used != null && storage.quota ? ` Usás ${storage.used < 1024 * 1024 ? `${fmt(storage.used / 1024)} KB` : `${fmt(storage.used / 1024 / 1024, 1)} MB`} de ${fmt(storage.quota / 1024 / 1024)} MB disponibles.` : ''}
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Button variant="ghost" onClick={download}>Exportar copia (.json)</Button>
           <Button variant="ghost" onClick={downloadCsv}>Historial para Excel (.csv)</Button>
@@ -347,5 +378,89 @@ function Slider({ value, min, max, step, onChange, suffix, accent }) {
         <span>{min}</span><span className="text-zinc-300">{fmt(value, 2)} {suffix}</span><span>{max}</span>
       </div>
     </div>
+  )
+}
+
+// Campo opcional: vacío = sin meta
+function OptionalField({ settings, set, name, label, suffix }) {
+  return (
+    <Input
+      key={`${name}-${settings[name]}`} label={label} suffix={suffix} type="number" inputMode="decimal" placeholder="sin meta"
+      defaultValue={settings[name] ?? ''}
+      onBlur={(e) => { const v = num(e.target.value); set({ [name]: v > 0 ? v : null }) }}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+    />
+  )
+}
+
+// Mantenimiento medido con tus registros (más fiel que la fórmula después de unas semanas)
+function MeasuredMaintenance({ measured, plan, settings, set }) {
+  const using = settings.maintenanceSource === 'measured' && settings.measuredTdee
+  return (
+    <div className="mt-4 rounded-xl border border-dashed border-white/[0.16] p-3.5">
+      <p className="font-hand text-[21px] leading-none text-zinc-100">Según tus datos</p>
+      {measured.status === 'waiting' ? (
+        <p className="mt-1.5 text-sm text-zinc-400">
+          Con 3 semanas de comidas y pesajes calculo cuánto gastás de verdad. Últimos 21 días: {measured.intakeDays} de {measured.need.intakeDays} días con comida completa
+          y {measured.weighins} de {measured.need.weighins} pesajes.
+        </p>
+      ) : (
+        <>
+          <p className="mt-1.5 text-sm text-zinc-300">
+            Comiste en promedio <b>{fmt(measured.intake)} kcal</b> y tu peso {measured.kgPerWeek <= 0 ? 'bajó' : 'subió'} {fmt(Math.abs(measured.kgPerWeek), 2)} kg/semana:
+            tu mantenimiento real ronda <b className="text-accent">{fmt(measured.tdee)} kcal</b>
+            <span className="text-zinc-500"> (fórmula: {fmt(plan.formulaTdee)})</span>.
+          </p>
+          <p className="mt-1 text-xs text-zinc-500">Solo sirve si anotás todo lo que comés. Los días con menos de 1.000 kcal anotadas no cuentan.</p>
+          {(!using || settings.measuredTdee !== measured.tdee) && (
+            <Button className="mt-2.5" size="sm" onClick={() => set({ maintenanceSource: 'measured', measuredTdee: measured.tdee })}>Usar {fmt(measured.tdee)} kcal</Button>
+          )}
+        </>
+      )}
+      {using && (
+        <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-400">
+          Tu plan usa el mantenimiento medido ({fmt(settings.measuredTdee)} kcal).
+          <Button variant="plain" size="sm" onClick={() => set({ maintenanceSource: 'formula' })}>Volver a la fórmula</Button>
+        </p>
+      )}
+    </div>
+  )
+}
+
+// Fase de déficit: cuántas semanas lleva y semana de mantenimiento
+function PhaseCard({ phase, settings, set, today }) {
+  return (
+    <Card>
+      <SectionTitle>Fase de déficit</SectionTitle>
+      {phase.status === 'break' ? (
+        <p className="text-sm text-zinc-300">Estás en semana de mantenimiento hasta el {formatLong(phase.until)}. Después arranca una fase nueva sola.</p>
+      ) : phase.status === 'none' ? (
+        <p className="text-sm text-zinc-400">Marcá cuándo empezó tu déficit: la app te avisa cuando toque una semana en mantenimiento.</p>
+      ) : (
+        <p className="text-sm text-zinc-300">
+          Empezaste el {formatLong(phase.start)}: vas por la <b>semana {phase.week}</b> de {phase.limit}.
+          {phase.status === 'due' && <span className="text-amber-300"> Ya toca una semana en mantenimiento.</span>}
+        </p>
+      )}
+      <div className="mt-3 flex flex-wrap items-end gap-3">
+        <Input
+          key={`ps-${settings.phaseStart}`} label="Inicio de la fase" type="date" className="w-44"
+          defaultValue={settings.phaseStart ?? ''} max={today}
+          onBlur={(e) => e.target.value && e.target.value !== settings.phaseStart && set({ phaseStart: e.target.value })}
+        />
+        <Input
+          key={`pw-${settings.phaseWeeks}`} label="Duración" suffix="semanas" type="number" inputMode="numeric" className="w-32"
+          defaultValue={settings.phaseWeeks}
+          onBlur={(e) => { const v = Math.round(num(e.target.value) ?? 0); if (v >= 4 && v <= 30) set({ phaseWeeks: v }) }}
+          onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        />
+        {phase.status !== 'break' && (
+          <Button variant="ghost" onClick={() => set(startBreak(today))}>Semana de mantenimiento ahora</Button>
+        )}
+      </div>
+      <p className="mt-3 text-xs text-zinc-500">
+        Fases de 8 a 16 semanas con una semana en mantenimiento en el medio ayudan a sostener el plan. Durante esa semana el objetivo de calorías pasa a ser tu mantenimiento.
+      </p>
+    </Card>
   )
 }

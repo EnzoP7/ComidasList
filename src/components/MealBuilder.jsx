@@ -22,7 +22,7 @@ const MAIN_GROUPS = [
     suggest: ['arroz-blanco', 'arroz-integral', 'boniato', 'papa', 'fideos', 'lentejas', 'garbanzos', 'quinoa'] },
   { id: 'veg', label: 'Verduras', icon: '🥦', cats: ['veg', 'fruit'], hint: 'Volumen y fibra · 100–200 g',
     suggest: ['brocoli', 'zapallito', 'zanahoria', 'morron', 'cebolla', 'chauchas', 'espinaca', 'lechuga'] },
-  { id: 'extras', label: 'Extras', icon: '🥑', cats: ['fats', 'seeds'], hint: 'Con medida · aceite 5–10 g, palta, queso, semillas',
+  { id: 'extras', label: 'Extras', icon: '🥑', cats: ['fats', 'seeds', 'pantry'], hint: 'Con medida · aceite 5–10 g, palta, queso, semillas',
     suggest: ['aceite-oliva', 'palta', 'queso-rallado', 'pulpa-tomate', 'sesamo', 'girasol-semillas'] },
 ]
 
@@ -33,7 +33,7 @@ const BREAKFAST_GROUPS = [
     suggest: ['avena', 'pan-integral', 'galletas-arroz', 'boniato'] },
   { id: 'fruit', label: 'Fruta y verdura', icon: '🍌', cats: ['fruit', 'veg'], hint: '1 fruta o un poco de verdura',
     suggest: ['banana', 'manzana', 'naranja', 'mandarina', 'tomate', 'espinaca'] },
-  { id: 'extras', label: 'Extras', icon: '🥜', cats: ['fats', 'seeds'], hint: 'Con medida · 1 cda de chía o pasta de maní, un puñado de frutos secos',
+  { id: 'extras', label: 'Extras', icon: '🥜', cats: ['fats', 'seeds', 'pantry'], hint: 'Con medida · 1 cda de chía o pasta de maní, un puñado de frutos secos',
     suggest: ['chia', 'lino', 'pasta-mani', 'almendras', 'nueces', 'cacao', 'miel', 'granola'] },
   { id: 'drink', label: 'Bebida', icon: '☕', cats: ['drinks'], hint: 'Café, mate, té o jugo · contá también lo que tomás',
     suggest: ['cafe-manzanares', 'cafe-con-leche', 'cortado', 'mate', 'te', 'jugo-naranja'] },
@@ -55,7 +55,7 @@ const SNACK_GROUPS = [
     suggest: ['pan-integral', 'galletas-arroz', 'avena', 'bizcocho', 'torta-frita'] },
   { id: 'fruit', label: 'Fruta', icon: '🍎', cats: ['fruit', 'veg'], hint: 'Una fruta de estación',
     suggest: ['banana', 'manzana', 'mandarina', 'naranja', 'tomate'] },
-  { id: 'extras', label: 'Extras', icon: '🥜', cats: ['fats', 'seeds'], hint: 'Con medida · 1 cda de chía o pasta de maní, un puñado de frutos secos',
+  { id: 'extras', label: 'Extras', icon: '🥜', cats: ['fats', 'seeds', 'pantry'], hint: 'Con medida · 1 cda de chía o pasta de maní, un puñado de frutos secos',
     suggest: ['chia', 'pasta-mani', 'almendras', 'castanas-caju', 'nueces', 'granola', 'pasas'] },
   { id: 'drink', label: 'Bebida', icon: '🧉', cats: ['drinks'], hint: 'Mate, café o té: sin azúcar no suman',
     suggest: ['mate', 'cafe-manzanares', 'cafe-con-leche', 'cortado', 'te'] },
@@ -522,7 +522,7 @@ export function batchRecipe(name, computed, portions) {
     // Total de cada ingrediente del lote (para costos) + filas por taper (para editar)
     ingredients: filled.map((r) => ({ name: r.variant.label, grams: r.g * portions, kcal: r.variant.kcal, protein: r.variant.protein })),
     rows: filled.map(({ foodId, state, g }) => ({ foodId, state, grams: g })),
-    perTaper: { kcal: Math.round(total.kcal), protein: r1(total.protein), fat: r1(total.fat), carbs: r1(total.carbs) },
+    perTaper: { kcal: Math.round(total.kcal), protein: r1(total.protein), fat: r1(total.fat), carbs: r1(total.carbs), fiber: r1(total.fiber) },
     kcalPerPortion: 0, proteinPerPortion: 0, costPerPortion: null,
   }
 }
@@ -674,11 +674,22 @@ export function FoodSearch({ foods, groups, onPick, placeholder = 'Buscar cualqu
   const [open, setOpen] = useState(false)
   const inputRef = useRef(null)
   const query = normalize(q.trim())
+  // Relevancia: el nombre empieza con lo buscado → lo contiene → un alias → la categoría
+  const rank = (f) => {
+    const name = normalize(f.name)
+    if (name.startsWith(query)) return 0
+    if (name.includes(` ${query}`)) return 1
+    if (name.includes(query)) return 2 + name.indexOf(query) / 100
+    if ((f.aliases ?? []).some((x) => normalize(x).includes(query))) return 5
+    return normalize(categoryOf(f.category).label).includes(query) ? 9 : null
+  }
   const results = query
     ? foods
-        .filter((f) => normalize(f.name).includes(query) || (f.aliases ?? []).some((x) => normalize(x).includes(query)) || normalize(categoryOf(f.category).label).includes(query))
-        .sort((a, b) => normalize(a.name).indexOf(query) - normalize(b.name).indexOf(query))
+        .map((f) => ({ f, r: rank(f) }))
+        .filter((x) => x.r != null)
+        .sort((a, b) => a.r - b.r || a.f.name.length - b.f.name.length)
         .slice(0, 8)
+        .map((x) => x.f)
     : []
 
   const pick = (food) => {

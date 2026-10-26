@@ -18,7 +18,18 @@ export const DEFAULT_SETTINGS = {
   stepsStretch: 12000,
   waterGoal: 3, // litros (~35 ml/kg)
   sleepGoal: 7.5, // horas
+  fiberPer1000: 14, // g de fibra cada 1.000 kcal (recomendación habitual)
   monthlyBudget: null, // $U; null = usar la estimación de Presupuesto
+  // Mantenimiento: fórmula o el medido con tus datos (ingesta vs. cambio de peso)
+  maintenanceSource: 'formula', // formula | measured
+  measuredTdee: null,
+  // Fase de déficit y semanas de mantenimiento
+  phaseStart: null, // 'YYYY-MM-DD'
+  phaseWeeks: 12,
+  breakUntil: null, // 'YYYY-MM-DD' último día de la semana de mantenimiento
+  // Metas con fecha
+  goalWeight: null,
+  goalWaist: null,
 }
 
 export const ACTIVITY_LEVELS = [
@@ -52,9 +63,11 @@ export const planWeight = (settings, logs, uptoKey) =>
  * Plan completo: TMB, mantenimiento, niveles de déficit, objetivo calórico y macros.
  * Proteína fija por kg, grasas por kg y carbohidratos = el resto de las calorías.
  */
-export function computePlan(settings, weight) {
+export function computePlan(settings, weight, { onBreak = false } = {}) {
   const bmr = bmrOf(settings, weight)
-  const tdee = maintenance(settings, weight)
+  const formulaTdee = maintenance(settings, weight)
+  const measured = settings.maintenanceSource === 'measured' && settings.measuredTdee > 0
+  const tdee = measured ? settings.measuredTdee : formulaTdee
   const levels = DEFICIT_LEVELS.map((l) => {
     const pct = l.id === 'aggressive' ? settings.aggressivePct : l.pct
     const kcal = round10(tdee * (1 - pct))
@@ -62,19 +75,28 @@ export function computePlan(settings, weight) {
     return { ...l, pct, kcal, deficit, weeklyKg: (deficit * 7) / KCAL_PER_KG_FAT }
   })
   const chosen = levels.find((l) => l.id === settings.deficitLevel)
-  const calorieGoal = chosen ? chosen.kcal : settings.customCalories
+  // En la semana de mantenimiento se come lo que se gasta
+  const calorieGoal = onBreak ? tdee : chosen ? chosen.kcal : settings.customCalories
   const deficit = tdee - calorieGoal
 
   const protein = Math.round(weight * settings.proteinPerKg)
   const fat = Math.round(weight * settings.fatPerKg)
   const carbs = Math.max(0, Math.round((calorieGoal - protein * 4 - fat * 9) / 4))
   return {
-    weight, bmr: Math.round(bmr), tdee, levels, calorieGoal, deficit,
+    weight, bmr: Math.round(bmr), tdee, formulaTdee, measured, onBreak, levels, calorieGoal, deficit,
     deficitPct: tdee ? deficit / tdee : 0,
     weeklyKg: (deficit * 7) / KCAL_PER_KG_FAT,
     macros: { protein, fat, carbs },
+    fiber: Math.round((calorieGoal / 1000) * (settings.fiberPer1000 ?? 14)),
   }
 }
+
+// Metas que se guardan con cada día: así cambiar el plan no reescribe el historial
+export const GOAL_KEYS = ['calorieGoal', 'proteinGoal', 'fatGoal', 'carbsGoal', 'fiberGoal', 'stepsGoal', 'waterGoal']
+export const goalsOf = (settings) => Object.fromEntries(GOAL_KEYS.map((k) => [k, settings[k]]))
+export const sameGoals = (a, b) => GOAL_KEYS.every((k) => a?.[k] === b?.[k])
+// Metas con las que se juzga un día: las suyas si las tiene, si no las actuales
+export const goalsFor = (day, settings) => ({ ...settings, ...day?.goals })
 
 // ── Calorías quemadas por actividad ──────────────────────────────────────────
 // Entrenamientos con su MET (equivalente metabólico). Se cuenta solo lo que suma
@@ -118,7 +140,8 @@ export const waterTotal = (day) => (day?.water ?? []).reduce((s, w) => s + w.ml,
  * Chequeos del día contra el plan. Calorías: entre 90% y 105% del objetivo (solo si se anotó comida).
  * Un día está "dentro del plan" con calorías bien y al menos 3 de 4 chequeos cumplidos.
  */
-export function dayChecks(day, settings) {
+export function dayChecks(day, currentSettings) {
+  const settings = goalsFor(day, currentSettings)
   const meals = day?.meals ?? []
   const kcal = meals.reduce((s, m) => s + (m.kcal || 0), 0)
   const protein = meals.reduce((s, m) => s + (m.protein || 0), 0)
@@ -144,6 +167,7 @@ export function dayTotals(day) {
     protein: meals.reduce((s, m) => s + (m.protein || 0), 0),
     fat: meals.reduce((s, m) => s + (m.fat || 0), 0),
     carbs: meals.reduce((s, m) => s + (m.carbs || 0), 0),
+    fiber: meals.reduce((s, m) => s + (m.fiber || 0), 0),
   }
 }
 

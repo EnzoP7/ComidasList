@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 // Piezas de la "pizarra de feria": paneles, tiza, conteos y controles.
 
 export function Card({ className = '', variant = 'panel', children, ...props }) {
@@ -162,6 +164,23 @@ export function Select({ label, options, className = '', ...props }) {
   )
 }
 
+// Input numérico que guarda al salir del campo o al pulsar Enter
+export function NumberField({ value, onCommit, ...props }) {
+  const [draft, setDraft] = useState(value ?? '')
+  const commit = () => {
+    const v = num(draft)
+    if (v !== (value ?? null)) onCommit(v)
+  }
+  return (
+    <Input
+      type="number" inputMode="decimal" value={draft}
+      onChange={(e) => setDraft(e.target.value)} onBlur={commit}
+      onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+      {...props}
+    />
+  )
+}
+
 // Convierte el texto de un input numérico en número o null
 export const num = (v) => {
   if (v === '' || v == null) return null
@@ -199,6 +218,7 @@ const paths = {
   wallet: 'M4 7.5A2.5 2.5 0 0 1 6.5 5H17v2.5M4 7.5V18a1.5 1.5 0 0 0 1.5 1.5H19a1 1 0 0 0 1-1v-10a1 1 0 0 0-1-1H6.5A2.5 2.5 0 0 1 4 7.5ZM16 13.5h.01',
   chalk: 'M6 18 17 7l2 2L8 20H6v-2Zm9-9 2 2',
   list: 'M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01',
+  barcode: 'M4 6v12M7 6v12M10.5 6v12M13 6v12M17 6v12M20 6v12M4 4h3M17 4h3M4 20h3M17 20h3',
   cart: 'M3 4h2l2.2 10.5a1 1 0 0 0 1 .8h8.9a1 1 0 0 0 1-.8L20 8H6.2M9 19.5h.01M17 19.5h.01',
 }
 

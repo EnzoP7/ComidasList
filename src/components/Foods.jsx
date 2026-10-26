@@ -9,6 +9,8 @@ import { DEFAULT_ICON, detectIcon } from '../lib/icons'
 import { uid } from '../lib/model'
 import { CURRENCY, money } from '../lib/prices'
 import { Button, Card, Icon, Input, SectionTitle, Select, fmt, num } from './ui'
+import CustomFoodForm from './CustomFoodForm'
+import BarcodeLookup from './Barcode'
 
 const SORTS = [
   { value: 'name', label: 'Nombre' },
@@ -33,13 +35,14 @@ const unitLabel = (label, k) =>
 // "$U 330 / maple 30"
 const priceText = (food) => (food.price?.uyu ? `${money(food.price.uyu)} / ${food.price.per}` : 'Sin precio')
 
-export default function Foods({ date, addMeal, addToBuilder, createLabel = 'taper', foodState, setFoodState, goToBuilder }) {
+export default function Foods({ date, addMeal, addToBuilder, createLabel = 'taper', foodState, setFoodState, addCustomFood, goToBuilder }) {
   const { foods } = useFoods()
   const [query, setQuery] = useState('')
   const [cat, setCat] = useState('all')
   const [sort, setSort] = useState('name')
   const [selectedId, setSelectedId] = useState(null)
   const [creating, setCreating] = useState(false)
+  const [scanning, setScanning] = useState(false)
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -71,8 +74,17 @@ export default function Foods({ date, addMeal, addToBuilder, createLabel = 'tape
           <h1 className="font-hand text-[40px] font-bold leading-[0.9] text-zinc-50">Alimentos</h1>
           <p className="text-xs text-zinc-500">{foods.length} alimentos · precios en {CURRENCY} · referencia {PRICES_UPDATED}</p>
         </div>
-        <Button onClick={() => setCreating(true)}><Icon name="plus" className="h-4 w-4" /> Nuevo alimento</Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="ghost" onClick={() => { setScanning((s) => !s); setCreating(false) }}><Icon name="barcode" className="h-4 w-4" /> Código de barras</Button>
+          <Button onClick={() => { setCreating(true); setScanning(false) }}><Icon name="plus" className="h-4 w-4" /> Nuevo alimento</Button>
+        </div>
       </div>
+
+      {scanning && (
+        <BarcodeLookup
+          foods={foods} onSave={addCustomFood} onUse={(f) => { setSelectedId(f.id); setQuery('') }} onClose={() => setScanning(false)} useLabel="Ver ficha"
+        />
+      )}
 
       <PriceAdjust factor={foodState.priceFactor ?? 1} setFoodState={setFoodState} />
 
@@ -403,6 +415,7 @@ function FoodDetail({ food, onClose, onAddToday, onAddToBuilder, createLabel, go
         <p className="mt-2 text-xs text-zinc-500">
           {food.price?.ref && <>Referencia: {food.price.ref}. </>}
           {food.note && <>{food.note} </>}
+          {food.barcode && <>Código {food.barcode} · datos de {food.source ?? 'Open Food Facts'}. </>}
           Este precio calcula el costo de tus tapers y lotes.
         </p>
       </Card>
@@ -425,72 +438,5 @@ function Row({ label, value }) {
       <dt className="text-zinc-500">{label}</dt>
       <dd className="text-right font-medium">{value}</dd>
     </div>
-  )
-}
-
-const FORMS = [
-  { value: 'm', label: 'crudo / cocido' },
-  { value: 'f', label: 'cruda / cocida' },
-  { value: 'mp', label: 'crudos / cocidos' },
-  { value: 'fp', label: 'crudas / cocidas' },
-]
-
-function CustomFoodForm({ onSave, onCancel }) {
-  const [d, setD] = useState({
-    name: '', category: 'meat', kcal: '', protein: '', fat: '', carbs: '', fiber: '', cook: '', forms: 'm',
-    uyu: '', per: 'kg', grams: '1000', unitLabel: '', unitGrams: '',
-  })
-  const set = (patch) => setD((prev) => ({ ...prev, ...patch }))
-  const valid = d.name.trim() && num(d.kcal) != null && num(d.protein) != null
-
-  const submit = (e) => {
-    e.preventDefault()
-    if (!valid) return
-    // El formulario pide valores por 100 g (como la etiqueta) y se guardan por 1 g
-    const perGram = Object.fromEntries(NUTRIENTS.map(({ key }) => [key, (num(d[key]) ?? 0) / 100]))
-    onSave({
-      name: d.name.trim(), category: d.category, forms: d.forms, cook: num(d.cook), perGram,
-      price: num(d.uyu) ? { uyu: num(d.uyu), per: d.per.trim() || 'kg', grams: num(d.grams) ?? 1000, ref: 'precio propio' } : null,
-      unit: d.unitLabel.trim() && num(d.unitGrams) ? { label: d.unitLabel.trim(), grams: num(d.unitGrams) } : undefined,
-    })
-  }
-
-  return (
-    <Card className="border-accent/20">
-      <SectionTitle>Nuevo alimento</SectionTitle>
-      <form onSubmit={submit} className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-[1fr_220px]">
-          <Input label="Nombre (sin crudo/cocido)" prefix={detectIcon(d.name)} placeholder="Ej. Muslo de pollo" value={d.name} onChange={(e) => set({ name: e.target.value })} autoFocus />
-          <Select label="Categoría" value={d.category} onChange={(e) => set({ category: e.target.value })}
-            options={FOOD_CATEGORIES.map((c) => ({ value: c.id, label: `${c.icon} ${c.label}` }))} />
-        </div>
-        <p className="text-xs text-zinc-500">Valores por 100 g tal como lo comprás (en crudo), como en la etiqueta. La app los guarda por gramo.</p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {NUTRIENTS.map(({ key, label, unit }) => (
-            <Input key={key} label={label} suffix={unit} type="number" inputMode="decimal" value={d[key]} onChange={(e) => set({ [key]: e.target.value })} />
-          ))}
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Input label="Precio" suffix={CURRENCY} type="number" inputMode="decimal" value={d.uyu} onChange={(e) => set({ uyu: e.target.value })} />
-          <Input label="Por (unidad)" placeholder="kg, litro, pack…" value={d.per} onChange={(e) => set({ per: e.target.value })} />
-          <Input label="Gramos que trae" suffix="g" type="number" inputMode="decimal" value={d.grams} onChange={(e) => set({ grams: e.target.value })} />
-        </div>
-        <div className="grid grid-cols-3 gap-2">
-          <Input label="Factor de cocción" placeholder="ej. 2,8" type="number" inputMode="decimal" value={d.cook} onChange={(e) => set({ cook: e.target.value })} />
-          <Input label="Porción (nombre)" placeholder="ej. scoop" value={d.unitLabel} onChange={(e) => set({ unitLabel: e.target.value })} />
-          <Input label="Porción (gramos)" suffix="g" type="number" inputMode="decimal" value={d.unitGrams} onChange={(e) => set({ unitGrams: e.target.value })} />
-        </div>
-        {num(d.cook) != null && (
-          <Select label="Se dice" value={d.forms} onChange={(e) => set({ forms: e.target.value })} options={FORMS} />
-        )}
-        <p className="text-xs text-zinc-500">
-          Factor de cocción = peso cocido ÷ peso crudo. Arroz ≈ 2,8 · fideos ≈ 2,3 · lentejas ≈ 2,5 · pollo y carne ≈ 0,75. Vacío si no se cocina.
-        </p>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="ghost" onClick={onCancel}>Cancelar</Button>
-          <Button type="submit" disabled={!valid}>Guardar alimento</Button>
-        </div>
-      </form>
-    </Card>
   )
 }

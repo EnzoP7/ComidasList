@@ -3,8 +3,11 @@ import {
   Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import { addDays, formatShort, lastNDays, todayKey, weekStart } from '../lib/date'
+import { addDays, formatLong, formatShort, lastNDays, todayKey, weekStart } from '../lib/date'
 import { dayChecks, dayTotals, measureChanges, planAdvice, sleepInsight } from '../lib/model'
+import { projectGoal } from '../lib/progress'
+import { strengthProgress } from '../lib/strength'
+import Photos from './Photos'
 import { Button, Card, PageHeader, SectionTitle, fmt } from './ui'
 
 const RANGES = [
@@ -34,6 +37,9 @@ export default function Stats({ logs, settings, plan, setSettings }) {
         label: formatShort(key),
         weight: d?.weight ?? null,
         waist: d?.waist ?? null,
+        // Metas de ese día (las que tenía cuando se anotó)
+        proteinGoal: d?.goals?.proteinGoal ?? settings.proteinGoal,
+        calorieGoal: d?.goals?.calorieGoal ?? settings.calorieGoal,
         protein: d?.meals?.length ? Math.round(t.protein) : null,
         kcal: d?.meals?.length ? Math.round(t.kcal) : null,
         carbs: d?.meals?.length ? Math.round(t.carbs) : null,
@@ -50,7 +56,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
       day.trend = w.length ? Math.round(avg(w) * 10) / 10 : null
     })
     return days
-  }, [logs, weeks])
+  }, [logs, weeks, settings.proteinGoal, settings.calorieGoal])
 
   const weekly = useMemo(() => {
     const groups = new Map()
@@ -78,7 +84,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
   }, [data])
 
   const proteinDays = data.filter((d) => d.protein != null)
-  const hit = proteinDays.filter((d) => d.protein >= settings.proteinGoal * 0.95).length
+  const hit = proteinDays.filter((d) => d.protein >= d.proteinGoal * 0.95).length
   const stepDays = data.filter((d) => d.steps != null)
   const stepsHit = stepDays.filter((d) => d.steps >= settings.stepsGoal).length
   const weights = data.filter((d) => d.weight)
@@ -105,6 +111,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
   const sleepGoal = settings.sleepGoal ?? 7.5
   const insight = useMemo(() => sleepInsight(logs, data.map((d) => d.key)), [logs, data])
   const measures = useMemo(() => measureChanges(logs, data.map((d) => d.key)), [logs, data])
+  const strength = useMemo(() => strengthProgress(logs, data.map((d) => d.key)), [logs, data])
   const domain = hasWeight
     ? [Math.floor(Math.min(...weights.map((d) => d.weight)) - 1), Math.ceil(Math.max(...weights.map((d) => d.weight)) + 1)]
     : [75, 90]
@@ -136,6 +143,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
       </PageHeader>
 
       <PlanAdvice advice={plan ? planAdvice(logs, plan, todayKey(), addDays) : null} setSettings={setSettings} />
+      <GoalCard logs={logs} settings={settings} />
 
       {/* Cifras del período */}
       <dl className="grid grid-cols-2 gap-x-6 gap-y-4 border-y border-dashed border-white/[0.14] py-4 md:grid-cols-4">
@@ -213,6 +221,10 @@ export default function Stats({ logs, settings, plan, setSettings }) {
 
       <MeasuresCard measures={measures} />
 
+      <div id="fotos" className="scroll-mt-4"><Photos /></div>
+
+      <StrengthCard rows={strength} weeks={weeks} />
+
       <Card variant="ruled">
         <SectionTitle action={<span className="tabular text-xs text-zinc-400">racha: <b className="text-zinc-100">{calendar.streak}</b> {calendar.streak === 1 ? 'día' : 'días'}</span>}>Días dentro del plan</SectionTitle>
         <p className="-mt-1.5 mb-3 text-xs text-zinc-500">
@@ -238,7 +250,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
                   />
                   <Bar dataKey="protein" name="Proteína" radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false}>
                     {data.map((d) => (
-                      <Cell key={d.key} fill={d.protein >= settings.proteinGoal * 0.95 ? C.protein : C.proteinLow} />
+                      <Cell key={d.key} fill={d.protein >= d.proteinGoal * 0.95 ? C.protein : C.proteinLow} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -266,7 +278,7 @@ export default function Stats({ logs, settings, plan, setSettings }) {
                   <ReferenceLine y={settings.calorieGoal} stroke="#cdd0c6" strokeWidth={1} label={{ value: `objetivo ${fmt(settings.calorieGoal)}`, position: 'insideTopLeft', fill: '#cdd0c6', fontSize: 11 }} />
                   <Bar dataKey="kcal" name="Calorías" radius={[4, 4, 0, 0]} maxBarSize={18} isAnimationActive={false}>
                     {data.map((d) => (
-                      <Cell key={d.key} fill={d.kcal > settings.calorieGoal * 1.05 ? '#e2685a' : '#866ec5'} />
+                      <Cell key={d.key} fill={d.kcal > d.calorieGoal * 1.05 ? '#e2685a' : '#866ec5'} />
                     ))}
                   </Bar>
                 </BarChart>
@@ -600,6 +612,89 @@ function MeasuresCard({ measures }) {
         </>
       ) : (
         <Empty text="Medí cintura (y si querés cadera, pecho y brazo) en Hoy → Peso. Acá vas a ver cuánto cambió cada una." />
+      )}
+    </Card>
+  )
+}
+
+// Metas con fecha: en qué día llegás al ritmo actual (recta de las últimas 4 u 8 semanas)
+function GoalCard({ logs, settings }) {
+  const today = todayKey()
+  const rows = [
+    { label: 'Peso', unit: 'kg', goal: settings.goalWeight, p: projectGoal(logs, today, 'weight', settings.goalWeight, { days: 28, minPoints: 6 }) },
+    { label: 'Cintura', unit: 'cm', goal: settings.goalWaist, p: projectGoal(logs, today, 'waist', settings.goalWaist, { days: 56, minPoints: 3 }) },
+  ].filter((r) => r.goal)
+  if (!rows.length) {
+    return (
+      <p className="text-sm text-zinc-500">
+        Poné un peso o una cintura meta en Ajustes → Otras metas y acá vas a ver en qué fecha llegás al ritmo actual.
+      </p>
+    )
+  }
+  const text = ({ p, unit }) => {
+    if (p.status === 'waiting') return unit === 'kg' ? 'Necesito 6 pesajes en 4 semanas para proyectar.' : 'Necesito 3 medidas en 8 semanas para proyectar.'
+    if (p.status === 'reached') return '¡Meta alcanzada! Podés poner una nueva en Ajustes.'
+    if (p.status === 'stalled') return `Al ritmo de las últimas semanas (${p.perWeek > 0 ? '+' : '−'}${fmt(Math.abs(p.perWeek), 2)} ${unit}/sem) no se acerca. Revisá el ajuste del plan arriba.`
+    const weeks = Math.round(p.daysLeft / 7)
+    return `Al ritmo actual (−${fmt(Math.abs(p.perWeek), 2)} ${unit}/sem) llegás cerca del ${formatLong(p.date)}, en ${weeks <= 1 ? 'una semana' : `${weeks} semanas`}.`
+  }
+  return (
+    <div className="rounded-[14px] bg-ink-900 p-4 shadow-[inset_0_1px_0_rgb(238_237_230/0.05)]">
+      <p className="font-hand text-[26px] leading-none text-zinc-100">Tu meta</p>
+      <dl className="mt-3 space-y-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <dt className="tabular text-xs text-zinc-500">
+              {r.label}: {r.p.current != null ? <b className="text-zinc-200">{fmt(r.p.current, 1)} {r.unit}</b> : '—'} → meta {fmt(r.goal, 1)} {r.unit}
+            </dt>
+            <dd className={`mt-0.5 text-[15px] ${r.p.status === 'ok' || r.p.status === 'reached' ? 'text-accent' : 'text-zinc-300'}`}>{text(r)}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 text-xs text-zinc-500">Es una proyección: la grasa de los flancos suele ser la última en irse, así que el ritmo se frena al final.</p>
+    </div>
+  )
+}
+
+// Fuerza: si las cargas se mantienen o suben en déficit, el músculo se queda
+function StrengthCard({ rows, weeks }) {
+  const pct = (c) => `${c > 0 ? '+' : c < 0 ? '−' : ''}${fmt(Math.abs(c * 100))}%`
+  const best = (b) => (b.kg > 0 ? `${fmt(b.kg, 1)}×${b.reps}` : `${b.reps} reps`)
+  const compared = rows.filter((r) => r.change != null)
+  const kept = compared.filter((r) => r.change >= -0.03).length
+  return (
+    <Card variant="ruled">
+      <SectionTitle action={compared.length ? <span className="text-xs text-zinc-500">{kept} de {compared.length} se mantienen o suben</span> : null}>Fuerza</SectionTitle>
+      {rows.length ? (
+        <>
+          <table className="tabular w-full text-sm">
+            <thead className="text-left text-xs text-zinc-500">
+              <tr className="border-b border-dashed border-white/[0.14]">
+                <th className="px-1 py-2 font-normal">Ejercicio</th>
+                <th className="px-1 py-2 text-right font-normal">Primera</th>
+                <th className="px-1 py-2 text-right font-normal">Última</th>
+                <th className="px-1 py-2 text-right font-normal">Cambio</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-dashed divide-white/[0.08]">
+              {rows.map((r) => (
+                <tr key={r.name}>
+                  <td className="px-1 py-2.5 text-zinc-200">{r.name} <span className="block text-[11px] text-zinc-500">{r.sessions} {r.sessions === 1 ? 'sesión' : 'sesiones'}</span></td>
+                  <td className="px-1 py-2.5 text-right text-zinc-400">{best(r.first)} <span className="block text-[11px] text-zinc-500">{formatShort(r.firstDay)}</span></td>
+                  <td className="px-1 py-2.5 text-right text-zinc-100">{best(r.last)} <span className="block text-[11px] text-zinc-500">{formatShort(r.lastDay)}</span></td>
+                  <td className={`px-1 py-2.5 text-right ${r.change == null ? 'text-zinc-600' : r.change >= -0.03 ? 'text-accent' : 'text-amber-300'}`}>
+                    {r.change == null ? '—' : pct(r.change)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="mt-3 text-xs text-zinc-500">
+            Cambio del 1RM estimado (o de las reps sin peso) en las últimas {weeks} semanas. En déficit, mantener las cargas ya es ganar: si bajan más de 3%, revisá proteína, sueño o el tamaño del déficit.
+          </p>
+        </>
+      ) : (
+        <Empty text="En Hoy → Actividad, agregá una sesión de fuerza y tocá “anotar series”. Acá vas a ver si tus cargas se mantienen mientras bajan los flancos." />
       )}
     </Card>
   )
