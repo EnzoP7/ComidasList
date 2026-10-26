@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+@import "@fontsource/atkinson-hyperlegible/400.css";
+@import "@fontsource/atkinson-hyperlegible/700.css";
+@import "@fontsource/cabin-sketch/700.css";
+@import "@fontsource/caveat/600.css";
+@import "@fontsource/caveat/700.css";
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   Pizarra de feria
+   Pizarra verde-negra, tizas con rol fijo, listón de madera.
+   ───────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --font-sans: "Atkinson Hyperlegible", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-chalk: "Cabin Sketch", "Atkinson Hyperlegible", sans-serif; /* cifras grandes a tiza */
+  --font-hand: "Caveat", "Atkinson Hyperlegible", cursive;           /* títulos y anotaciones */
+
+  /* Pizarra (fondos): de la más oscura a la más clara */
+  --color-ink-950: #19211e;
+  --color-ink-900: #202a26;
+  --color-ink-850: #26312c;
+  --color-ink-800: #2d3933;
+  --color-ink-700: #3a4741;
+
+  /* Madera del listón */
+  --color-wood-700: #4a3423;
+  --color-wood-600: #5d422c;
+  --color-wood-500: #74543a;
+
+  /* Tiza blanca y sus grises (texto sobre pizarra; contraste verificado ≥ 4.5:1 hasta 500) */
+  --color-zinc-50: #f6f5ef;
+  --color-zinc-100: #eeede6;
+  --color-zinc-200: #dfdfd6;
+  --color-zinc-300: #cdd0c6;
+  --color-zinc-400: #aeb3a9;
+  --color-zinc-500: #959b92;
+  --color-zinc-600: #858c83;
+  --color-zinc-700: #4e5750;
+  --color-zinc-800: #333d38;
+  --color-zinc-900: #232c28;
+
+  /* Tiza verde: acción y meta cumplida */
+  --color-accent: #b4e09a;
+  --color-lime-200: #d6efc2;
+  --color-lime-300: #c6e8ae;
+  --color-lime-100: #e6f5da;
+
+  /* Tiza celeste: proteína */
+  --color-sky-100: #ddf0fa;
+  --color-sky-200: #bfe3f5;
+  --color-sky-300: #9fd3ee;
+  --color-sky-400: #6dbbe4;
+  --color-sky-700: #2f6f93;
+  --color-sky-900: #1f4a63;
+  --color-sky-950: #193746;
+
+  /* Tiza amarilla: carbohidratos */
+  --color-amber-200: #f6e3a1;
+  --color-amber-300: #f2d06b;
+  --color-amber-400: #dcb441;
+
+  /* Tiza rosa: grasas */
+  --color-pink-300: #f3b3c5;
+  --color-pink-400: #e48aa8;
+
+  /* Tiza roja: exceso / alerta */
+  --color-rose-100: #fbe1dc;
+  --color-rose-200: #f5c0b8;
+  --color-rose-300: #ef8e80;
+  --color-rose-400: #e2685a;
+  --color-rose-500: #d4553f;
+
+  /* Tiza aguamarina: agua */
+  --color-aqua-300: #92e2db;
+  --color-aqua-400: #5fcfc5;
+
+  /* Tiza lila: sueño y cómo te sentís */
+  --color-lilac-300: #cbbcf2;
+  --color-lilac-400: #a994e2;
+
+  /* Tiza naranja: actividad / calorías quemadas */
+  --color-orange-300: #f5b27a;
+
+  /* Colores de datos para gráficos (validados con dataviz sobre la pizarra, orden fijo) */
+  --color-data-protein: #369dd1;
+  --color-data-carbs: #b18e15;
+  --color-data-fat: #c25485;
+  --color-data-good: #3eab5e;
+  --color-data-activity: #b64e10;
+  --color-data-other: #866ec5;
+  --color-data-water: #1ba79f;
+  --color-data-water-low: #48807b;
+  --color-data-protein-low: #497b98;
+  --color-data-sleep: #866ec5;
+  --color-data-sleep-low: #80789a;
+
+  /* Movimiento */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+html { color-scheme: dark; }
+
+body {
+  min-height: 100dvh;
+  background-color: var(--color-ink-950);
+  /* Rastros de borrador sobre la pizarra: manchas suaves y fijas, nunca granulado */
+  background-image:
+    radial-gradient(60rem 22rem at 15% -5%, rgb(238 237 230 / 0.045), transparent 70%),
+    radial-gradient(40rem 30rem at 95% 30%, rgb(238 237 230 / 0.03), transparent 70%),
+    radial-gradient(50rem 26rem at 30% 110%, rgb(238 237 230 / 0.035), transparent 70%);
+  background-attachment: fixed;
+  font-feature-settings: "kern" 1;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Superficies del navegador, del mismo mundo */
+::selection { background: rgb(180 224 154 / 0.35); color: var(--color-zinc-50); }
+input, textarea, select { caret-color: var(--color-accent); }
+:focus-visible { outline: 2px dashed var(--color-accent); outline-offset: 3px; border-radius: 8px; }
+* { scrollbar-width: thin; scrollbar-color: var(--color-ink-700) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--color-ink-700); border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+a { text-underline-offset: 3px; }
+select option { background: var(--color-ink-900); color: var(--color-zinc-100); }
+
+/* Cifras alineadas en columnas (tablas, listas, ejes) */
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* Number inputs sin flechas */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+
+/* ── Movimiento ─────────────────────────────────────────────────────────────── */
+
+/* Trazo a tiza: se dibuja cuando aparece (subrayados y círculos al cumplir una meta) */
+.chalk-draw path {
+  stroke-dasharray: var(--len, 300);
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 500ms var(--ease-out);
+}
+@starting-style {
+  .chalk-draw path { stroke-dashoffset: var(--len, 300); }
+}
+
+/* Barras y vaso que se llenan: transform, nunca width/height */
+.fill-x { transform-origin: left center; transition: transform 240ms var(--ease-out); }
+.fill-y { transform-origin: center bottom; transition: transform 320ms var(--ease-out); }
+
+/* Panel que sube desde abajo (menú "Más", ficha de alimento en el celular) */
+.sheet {
+  transition: transform 260ms var(--ease-drawer), opacity 200ms var(--ease-out);
+}
+.sheet[data-open="false"] { transform: translateY(16px); opacity: 0; pointer-events: none; }
+.scrim { transition: opacity 200ms var(--ease-out); }
+.scrim[data-open="false"] { opacity: 0; pointer-events: none; }
+.drawer-in { animation: drawer-in 280ms var(--ease-drawer); }
+@keyframes drawer-in { from { transform: translateY(24px); opacity: 0; } }
+
+/* Una cifra recién re-escrita a tiza */
+.rechalk { animation: rechalk 220ms var(--ease-out); }
+@keyframes rechalk { from { opacity: 0.35; filter: blur(1.5px); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .chalk-draw path { transition: none; }
+  .fill-x, .fill-y { transition: transform 1ms; }
+  .sheet { transition: opacity 150ms ease; }
+  .sheet[data-open="false"] { transform: none; }
+  .drawer-in { animation: fade-in 150ms ease; }
+  .rechalk { animation: none; }
+  @keyframes fade-in { from { opacity: 0; } }
+}
+
+/* Listón de madera (navegación): color plano de repisa, sin imitar vetas */
+.wood-ledge {
+  background-color: var(--color-wood-600);
+  border-top: 1px solid var(--color-wood-500);
+}
+
+/* Trazo de tiza: bordes irregulares por máscara geométrica (barras de progreso) */
+.chalk-stroke {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' preserveAspectRatio='none'%3E%3Cpath d='M0 1.8 6 .7l7 1.3 7-1.4 7 1 7-.9 6 1V8.3l-7 1-7-1.1-7 1.2-7-.9-7 .8L0 8.4Z'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' preserveAspectRatio='none'%3E%3Cpath d='M0 1.8 6 .7l7 1.3 7-1.4 7 1 7-.9 6 1V8.3l-7 1-7-1.1-7 1.2-7-.9-7 .8L0 8.4Z'/%3E%3C/svg%3E");
+  -webkit-mask-size: 40px 100%;
+  mask-size: 40px 100%;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}

@@ -1,0 +1,561 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-24T00:00:00Z",
+  "title": "Design System: Recomp 2027",
+  "extensions": {
+    "colorMeta": {
+      "board": {
+        "role": "neutral",
+        "displayName": "Board",
+        "canonical": "#19211e",
+        "tonalRamp": [
+          "#19211e",
+          "#202a26",
+          "#26312c",
+          "#2d3933",
+          "#3a4741",
+          "#4e5750",
+          "#858c83",
+          "#cdd0c6"
+        ]
+      },
+      "board-panel": {
+        "role": "neutral",
+        "displayName": "Board Panel",
+        "canonical": "#202a26"
+      },
+      "board-raised": {
+        "role": "neutral",
+        "displayName": "Board Raised",
+        "canonical": "#26312c"
+      },
+      "board-line": {
+        "role": "neutral",
+        "displayName": "Board Line",
+        "canonical": "#2d3933"
+      },
+      "wood-ledge": {
+        "role": "neutral",
+        "displayName": "Wooden Ledge",
+        "canonical": "#5d422c",
+        "tonalRamp": [
+          "#2a1d13",
+          "#4a3423",
+          "#5d422c",
+          "#74543a",
+          "#8e6b4d",
+          "#a98966",
+          "#c9b08f",
+          "#e9d9c4"
+        ]
+      },
+      "chalk": {
+        "role": "neutral",
+        "displayName": "White Chalk",
+        "canonical": "#eeede6",
+        "tonalRamp": [
+          "#232c28",
+          "#333d38",
+          "#4e5750",
+          "#858c83",
+          "#959b92",
+          "#aeb3a9",
+          "#cdd0c6",
+          "#eeede6"
+        ]
+      },
+      "chalk-dim": {
+        "role": "neutral",
+        "displayName": "Chalk Dim (~6.9:1)",
+        "canonical": "#aeb3a9"
+      },
+      "chalk-faint": {
+        "role": "neutral",
+        "displayName": "Chalk Faint (~5.2:1, text floor)",
+        "canonical": "#959b92"
+      },
+      "chalk-green": {
+        "role": "primary",
+        "displayName": "Green Chalk",
+        "canonical": "#b4e09a",
+        "tonalRamp": [
+          "#2c4020",
+          "#46642f",
+          "#638a45",
+          "#84b062",
+          "#b4e09a",
+          "#c6e8ae",
+          "#d6efc2",
+          "#e6f5da"
+        ]
+      },
+      "chalk-sky": {
+        "role": "secondary",
+        "displayName": "Sky Chalk (protein)",
+        "canonical": "#6dbbe4",
+        "tonalRamp": [
+          "#193746",
+          "#1f4a63",
+          "#2f6f93",
+          "#4f9cc6",
+          "#6dbbe4",
+          "#9fd3ee",
+          "#bfe3f5",
+          "#ddf0fa"
+        ]
+      },
+      "chalk-yellow": {
+        "role": "secondary",
+        "displayName": "Yellow Chalk (carbs, steps)",
+        "canonical": "#dcb441",
+        "tonalRamp": [
+          "#3d3110",
+          "#5e4b17",
+          "#82681f",
+          "#ad8b2c",
+          "#dcb441",
+          "#f2d06b",
+          "#f6e3a1",
+          "#fbf1d0"
+        ]
+      },
+      "chalk-pink": {
+        "role": "secondary",
+        "displayName": "Pink Chalk (fat)",
+        "canonical": "#e48aa8"
+      },
+      "chalk-aqua": {
+        "role": "secondary",
+        "displayName": "Aqua Chalk (water)",
+        "canonical": "#5fcfc5"
+      },
+      "chalk-orange": {
+        "role": "secondary",
+        "displayName": "Orange Chalk (activity)",
+        "canonical": "#f5b27a"
+      },
+      "chalk-red": {
+        "role": "tertiary",
+        "displayName": "Red Chalk (excess)",
+        "canonical": "#e2685a",
+        "tonalRamp": [
+          "#4a1d16",
+          "#7a2d21",
+          "#a83e2e",
+          "#d4553f",
+          "#e2685a",
+          "#ef8e80",
+          "#f5c0b8",
+          "#fbe1dc"
+        ]
+      },
+      "data-protein": {
+        "role": "data",
+        "displayName": "Data 1 · Protein",
+        "canonical": "#369dd1"
+      },
+      "data-carbs": {
+        "role": "data",
+        "displayName": "Data 2 · Carbs",
+        "canonical": "#b18e15"
+      },
+      "data-fat": {
+        "role": "data",
+        "displayName": "Data 3 · Fat",
+        "canonical": "#c25485"
+      },
+      "data-good": {
+        "role": "data",
+        "displayName": "Data 4 · Good / goal",
+        "canonical": "#3eab5e"
+      },
+      "data-activity": {
+        "role": "data",
+        "displayName": "Data 5 · Activity",
+        "canonical": "#b64e10"
+      },
+      "data-other": {
+        "role": "data",
+        "displayName": "Data 6 · Other",
+        "canonical": "#866ec5"
+      },
+      "data-water": {
+        "role": "data",
+        "displayName": "Data · Water (never with protein)",
+        "canonical": "#1ba79f"
+      },
+      "data-protein-low": {
+        "role": "data",
+        "displayName": "Protein below goal",
+        "canonical": "#497b98"
+      },
+      "data-water-low": {
+        "role": "data",
+        "displayName": "Water below goal",
+        "canonical": "#48807b"
+      },
+      "data-steps-low": {
+        "role": "data",
+        "displayName": "Steps below goal",
+        "canonical": "#86722a"
+      },
+      "data-plan-in": {
+        "role": "data",
+        "displayName": "Plan calendar · in plan",
+        "canonical": "#2f7d47"
+      },
+      "data-plan-close": {
+        "role": "data",
+        "displayName": "Plan calendar · close",
+        "canonical": "#2a4a36"
+      },
+      "data-plan-far": {
+        "role": "data",
+        "displayName": "Plan calendar · logged, off plan",
+        "canonical": "#26352d"
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Chalk Figure",
+        "purpose": "The one protagonist number per screen (hero 'te quedan'). Cabin Sketch, never under 48px."
+      },
+      "display-lg": {
+        "displayName": "Chalk Figure (≥640px)",
+        "purpose": "Hero figure on wider screens."
+      },
+      "display-sm": {
+        "displayName": "Chalk Figure Small",
+        "purpose": "Secondary chalk figures: today's weight, activity kcal."
+      },
+      "headline": {
+        "displayName": "Handwritten Page Title",
+        "purpose": "Page header titles in Caveat."
+      },
+      "title": {
+        "displayName": "Handwritten Section Title",
+        "purpose": "Section titles, date, hero lead-in. The sentence is the title."
+      },
+      "annotation": {
+        "displayName": "Chalk Annotation",
+        "purpose": "Renglón labels, units beside chalk figures, daily note."
+      },
+      "figure": {
+        "displayName": "Row Figure",
+        "purpose": "Values inside fixed rows; Atkinson 700, tabular."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "List names, inputs, buttons."
+      },
+      "body-sm": {
+        "displayName": "Body Small",
+        "purpose": "Header purpose lines, hero summary line."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, notes, legends, helper text."
+      },
+      "label-caps": {
+        "displayName": "Caps Descriptor",
+        "purpose": "Meal-kind chips and descriptors under or inside a value. Never above a title."
+      }
+    },
+    "shadows": [
+      {
+        "name": "panel-lip",
+        "value": "inset 0 1px 0 rgb(238 237 230 / 0.05)",
+        "purpose": "Every filled panel card; the lip of a slate."
+      },
+      {
+        "name": "sheet-lift",
+        "value": "0 18px 40px -12px rgb(0 0 0 / 0.7)",
+        "purpose": "Mobile 'Más' sheet, over a 60% black scrim."
+      },
+      {
+        "name": "chalk-on-ledge",
+        "value": "0 6px 16px -6px rgb(0 0 0 / 0.7)",
+        "purpose": "Raised centre Crear button on the mobile ledge only."
+      },
+      {
+        "name": "toast-lift",
+        "value": "0 14px 30px -10px rgb(0 0 0 / 0.7)",
+        "purpose": "Chalk-white toast above the ledge."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.23, 1, 0.32, 1)",
+        "purpose": "Default settle curve: fills, re-chalk, erase, button colour."
+      },
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(0.32, 0.72, 0, 1)",
+        "purpose": "Sheets and drawers."
+      },
+      {
+        "name": "ease-in-out",
+        "value": "cubic-bezier(0.77, 0, 0.175, 1)",
+        "purpose": "Defined token; reserved for on-screen moves."
+      },
+      {
+        "name": "fill-x",
+        "value": "transform scaleX 240ms ease-out",
+        "purpose": "Progress bars fill by transform, never width."
+      },
+      {
+        "name": "fill-y",
+        "value": "transform scaleY 320ms ease-out",
+        "purpose": "Water glass fill."
+      },
+      {
+        "name": "chalk-draw",
+        "value": "stroke-dashoffset 500ms ease-out on mount",
+        "purpose": "Goal underline draws itself when a goal is reached."
+      },
+      {
+        "name": "rechalk",
+        "value": "220ms from opacity 0.35 + blur 1.5px",
+        "purpose": "A changed figure is re-written in chalk."
+      },
+      {
+        "name": "erase",
+        "value": "180ms WAAPI: blur 4px + fade + translateX 8px",
+        "purpose": "Deleting a list item smudges it away like an eraser."
+      },
+      {
+        "name": "sheet",
+        "value": "transform 260ms ease-drawer, opacity 200ms ease-out",
+        "purpose": "'Más' sheet rising from the ledge; also the toast (3s, 6s with undo)."
+      },
+      {
+        "name": "drawer-in",
+        "value": "280ms from translateY 24px + opacity 0",
+        "purpose": "Mobile food detail drawer entry."
+      },
+      {
+        "name": "press",
+        "value": "scale 0.97, 150ms",
+        "purpose": "Button press feedback."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "short 150ms fades; draw, rechalk, erase skipped",
+        "purpose": "prefers-reduced-motion: reduce. Tab switches never animate."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px",
+        "purpose": "Ledge moves from bottom to top; wider gutters and hero figure."
+      },
+      {
+        "name": "md",
+        "value": "768px",
+        "purpose": "Ledge items show short labels."
+      },
+      {
+        "name": "lg",
+        "value": "1024px",
+        "purpose": "Hoy becomes two columns; ledge shows full labels."
+      }
+    ],
+    "focusRing": {
+      "value": "2px dashed #b4e09a, offset 3px, radius 8px",
+      "purpose": "Global :focus-visible."
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Green chalk; the single main action of a group (Comer 1, Anotar, Guardar).",
+      "html": "<button class=\"ds-btn-primary\">Comer 1</button>",
+      "css": ".ds-btn-primary { display:inline-flex; align-items:center; justify-content:center; gap:6px; height:40px; padding:0 16px; border:none; border-radius:12px; background:#b4e09a; color:#19211e; font:700 15px 'Atkinson Hyperlegible', system-ui, sans-serif; cursor:pointer; transition:background-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-primary:hover { background:#c6e8ae; } .ds-btn-primary:active { transform:scale(0.97); } .ds-btn-primary:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Dashed chalk outline; quick row actions (+1k, + vaso) and secondary choices.",
+      "html": "<button class=\"ds-btn-ghost\">+ vaso</button>",
+      "css": ".ds-btn-ghost { display:inline-flex; align-items:center; justify-content:center; height:32px; padding:0 12px; border:1px dashed rgb(255 255 255 / 0.18); border-radius:12px; background:transparent; color:#dfdfd6; font:400 14px 'Atkinson Hyperlegible', system-ui, sans-serif; cursor:pointer; transition:background-color 150ms cubic-bezier(0.23,1,0.32,1), border-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms; } .ds-btn-ghost:hover { border-color:rgb(255 255 255 / 0.3); background:rgb(255 255 255 / 0.04); } .ds-btn-ghost:active { transform:scale(0.97); } .ds-btn-ghost:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Dashed red chalk; destructive actions only.",
+      "html": "<button class=\"ds-btn-danger\">Borrar lote</button>",
+      "css": ".ds-btn-danger { display:inline-flex; align-items:center; height:40px; padding:0 16px; border:1px dashed rgb(239 142 128 / 0.4); border-radius:12px; background:transparent; color:#ef8e80; font:400 15px 'Atkinson Hyperlegible', system-ui, sans-serif; cursor:pointer; transition:background-color 150ms cubic-bezier(0.23,1,0.32,1); } .ds-btn-danger:hover { background:rgb(212 85 63 / 0.1); } .ds-btn-danger:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; }"
+    },
+    {
+      "name": "Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Inset dark field with label above and unit suffix inside.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Peso de hoy</span><span class=\"ds-field-box\"><input placeholder=\"82,5\" /><span class=\"ds-field-suffix\">kg</span></span></label>",
+      "css": ".ds-field { display:block; width:200px; font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-field-label { display:block; margin-bottom:6px; font-size:12px; color:#aeb3a9; } .ds-field-box { display:flex; align-items:center; height:40px; padding:0 12px; border:1px solid rgb(255 255 255 / 0.1); border-radius:8px; background:rgb(0 0 0 / 0.18); transition:border-color 150ms; } .ds-field-box:focus-within { border-color:rgb(180 224 154 / 0.7); } .ds-field-box input { flex:1; min-width:0; border:none; outline:none; background:transparent; color:#eeede6; font-size:15px; caret-color:#b4e09a; } .ds-field-box input::placeholder { color:#858c83; } .ds-field-suffix { margin-left:8px; font-size:12px; color:#959b92; }"
+    },
+    {
+      "name": "Wooden Ledge (desktop)",
+      "kind": "nav",
+      "refersTo": "nav-ledge",
+      "description": "Flat wood plank navigation; active item marked by a drawn chalk underline.",
+      "html": "<nav class=\"ds-ledge\"><button class=\"ds-ledge-item is-active\">Hoy<svg viewBox=\"0 0 100 10\" preserveAspectRatio=\"none\" class=\"ds-ledge-line\"><path d=\"M2 6.5 C 18 3.5, 34 8.5, 52 5.5 S 84 3.5, 98 6\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.6\" stroke-linecap=\"round\" vector-effect=\"non-scaling-stroke\"/></svg></button><button class=\"ds-ledge-item\">Crear</button><button class=\"ds-ledge-item\">Mi heladera</button><button class=\"ds-ledge-item\">Agua</button></nav>",
+      "css": ".ds-ledge { display:flex; gap:2px; padding:4px; border-radius:4px; background:#5d422c; border-top:1px solid #74543a; } .ds-ledge-item { position:relative; flex:1; padding:6px 12px 8px; border:none; border-radius:8px; background:transparent; color:rgb(233 217 196 / 0.75); font:400 14px 'Atkinson Hyperlegible', system-ui, sans-serif; cursor:pointer; transition:color 150ms; } .ds-ledge-item:hover { color:#f6f5ef; } .ds-ledge-item.is-active { background:rgb(0 0 0 / 0.25); color:#f6f5ef; } .ds-ledge-line { position:absolute; left:12px; right:12px; bottom:2px; height:10px; width:calc(100% - 24px); color:#eeede6; } .ds-ledge-item:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; }"
+    },
+    {
+      "name": "Ruled Section",
+      "kind": "card",
+      "refersTo": "card-ruled",
+      "description": "Reading sections: dashed chalk top rule, no fill, handwritten title.",
+      "html": "<section class=\"ds-ruled\"><h2 class=\"ds-ruled-title\">En la heladera</h2><p class=\"ds-ruled-row\">Pollo con arroz y brócoli <span>502 kcal · <b>43 g prot</b></span></p></section>",
+      "css": ".ds-ruled { width:320px; padding-top:20px; border-top:1px dashed rgb(255 255 255 / 0.18); font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-ruled-title { margin:0 0 12px; font:600 26px/1 'Caveat', cursive; color:#eeede6; } .ds-ruled-row { margin:0; font-size:15px; color:#eeede6; } .ds-ruled-row span { display:block; font-size:12px; color:#959b92; font-variant-numeric:tabular-nums; } .ds-ruled-row b { font-weight:400; color:#9fd3ee; }"
+    },
+    {
+      "name": "Panel Card",
+      "kind": "card",
+      "refersTo": "card-panel",
+      "description": "Filled slate for form-heavy groups and chart frames.",
+      "html": "<section class=\"ds-panel\"><h2 class=\"ds-panel-title\">Tu plan</h2><p class=\"ds-panel-body\">Mantenimiento estimado 2.790 kcal</p></section>",
+      "css": ".ds-panel { width:320px; padding:20px; border-radius:14px; background:#202a26; box-shadow:inset 0 1px 0 rgb(238 237 230 / 0.05); font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-panel-title { margin:0 0 12px; font:600 26px/1 'Caveat', cursive; color:#eeede6; } .ds-panel-body { margin:0; font-size:14px; color:#aeb3a9; }"
+    },
+    {
+      "name": "Renglón",
+      "kind": "custom",
+      "refersTo": "renglon",
+      "description": "Signature fixed board row: chalk label, figure and goal, rough chalk bar, quick action at right.",
+      "html": "<div class=\"ds-renglon\"><div class=\"ds-renglon-main\"><p class=\"ds-renglon-label\">Proteína</p><p class=\"ds-renglon-value\"><b>81</b><span>/ 166 g</span></p><div class=\"ds-renglon-track\"><div class=\"ds-renglon-fill\" style=\"transform:scaleX(0.49)\"></div></div><p class=\"ds-renglon-note\">faltan 85 g</p></div><button class=\"ds-renglon-act\">+ batido</button></div>",
+      "css": ".ds-renglon { display:flex; align-items:center; gap:12px; width:340px; padding:14px 0; border-top:1px dashed rgb(255 255 255 / 0.14); border-bottom:1px dashed rgb(255 255 255 / 0.14); font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-renglon-main { flex:1; min-width:0; } .ds-renglon-label { margin:0; font:600 21px/1 'Caveat', cursive; color:#aeb3a9; } .ds-renglon-value { margin:4px 0 0; display:flex; align-items:baseline; gap:6px; } .ds-renglon-value b { font-size:30px; line-height:1; letter-spacing:-0.02em; color:#f6f5ef; } .ds-renglon-value span { font-size:14px; color:#959b92; font-variant-numeric:tabular-nums; } .ds-renglon-track { margin-top:10px; height:8px; overflow:hidden; background:rgb(255 255 255 / 0.08); -webkit-mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' preserveAspectRatio='none'%3E%3Cpath d='M0 1.8 6 .7l7 1.3 7-1.4 7 1 7-.9 6 1V8.3l-7 1-7-1.1-7 1.2-7-.9-7 .8L0 8.4Z'/%3E%3C/svg%3E\"); mask-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10' preserveAspectRatio='none'%3E%3Cpath d='M0 1.8 6 .7l7 1.3 7-1.4 7 1 7-.9 6 1V8.3l-7 1-7-1.1-7 1.2-7-.9-7 .8L0 8.4Z'/%3E%3C/svg%3E\"); -webkit-mask-size:40px 100%; mask-size:40px 100%; } .ds-renglon-fill { height:100%; background:#6dbbe4; transform-origin:left center; transition:transform 240ms cubic-bezier(0.23,1,0.32,1); } .ds-renglon-note { margin:6px 0 0; font-size:12px; color:#959b92; } .ds-renglon-act { height:32px; padding:0 12px; border:1px dashed rgb(255 255 255 / 0.18); border-radius:12px; background:transparent; color:#dfdfd6; font-size:14px; cursor:pointer; } .ds-renglon-act:hover { border-color:rgb(255 255 255 / 0.3); background:rgb(255 255 255 / 0.04); }"
+    },
+    {
+      "name": "Meal-kind Chip",
+      "kind": "chip",
+      "refersTo": "chip-kind",
+      "description": "Tinted caps descriptor under a meal name; colour follows the Fixed Chalk Rule.",
+      "html": "<span class=\"ds-chip ds-chip-tupper\">tupper</span> <span class=\"ds-chip ds-chip-breakfast\">desayuno</span> <span class=\"ds-chip ds-chip-meal\">comida</span>",
+      "css": ".ds-chip { display:inline-block; padding:1px 4px; border-radius:4px; font:400 11px 'Atkinson Hyperlegible', system-ui, sans-serif; text-transform:uppercase; letter-spacing:0.025em; } .ds-chip-tupper { background:rgb(180 224 154 / 0.1); color:#b4e09a; } .ds-chip-breakfast { background:rgb(220 180 65 / 0.1); color:#f2d06b; } .ds-chip-meal { background:rgb(109 187 228 / 0.1); color:#9fd3ee; }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "toast",
+      "description": "Chalk-white slip above the ledge with optional Deshacer; 3s, 6s with undo.",
+      "html": "<div class=\"ds-toast\" role=\"status\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M5 12.5l4.5 4.5L19 7.5\"/></svg><span class=\"ds-toast-text\">Comiste 1 taper de pollo</span><button class=\"ds-toast-undo\">Deshacer</button></div>",
+      "css": ".ds-toast { display:flex; align-items:center; gap:12px; width:340px; padding:12px 16px; border-radius:12px; background:#eeede6; color:#19211e; box-shadow:0 14px 30px -10px rgb(0 0 0 / 0.7); font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-toast-text { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; font-size:14px; } .ds-toast-undo { padding:4px 8px; border:none; border-radius:8px; background:transparent; color:inherit; font:700 14px 'Atkinson Hyperlegible', system-ui, sans-serif; text-decoration:underline dashed; text-underline-offset:4px; cursor:pointer; } .ds-toast-undo:hover { background:rgb(25 33 30 / 0.06); } .ds-toast-undo:focus-visible { outline:2px dashed #19211e; outline-offset:2px; border-radius:8px; }"
+    },
+    {
+      "name": "Notice",
+      "kind": "card",
+      "refersTo": "notice",
+      "description": "One suggestion or warning with one action; dashed outline tinted by meaning (green suggestion, yellow caution, white neutral).",
+      "html": "<div class=\"ds-notice\"><div class=\"ds-notice-main\"><p class=\"ds-notice-title\">Para cerrar el día</p><p class=\"ds-notice-body\">Yogur + batido</p><p class=\"ds-notice-meta\">320 kcal · <b>42 g prot</b> de los 45 g que faltan</p></div><button class=\"ds-notice-act\">Anotar</button></div>",
+      "css": ".ds-notice { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; width:340px; padding:12px 14px; border:1px dashed rgb(180 224 154 / 0.4); border-radius:12px; font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-notice-main { flex:1; min-width:0; } .ds-notice-title { margin:0; font:600 21px/1 'Caveat', cursive; color:#b4e09a; } .ds-notice-body { margin:4px 0 0; font-size:15px; color:#eeede6; } .ds-notice-meta { margin:0; font-size:12px; color:#959b92; font-variant-numeric:tabular-nums; } .ds-notice-meta b { font-weight:400; color:#9fd3ee; } .ds-notice-act { height:32px; padding:0 12px; border:none; border-radius:12px; background:#b4e09a; color:#19211e; font:700 14px 'Atkinson Hyperlegible', system-ui, sans-serif; cursor:pointer; transition:background-color 150ms cubic-bezier(0.23,1,0.32,1), transform 150ms; } .ds-notice-act:hover { background:#c6e8ae; } .ds-notice-act:active { transform:scale(0.97); } .ds-notice-act:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; border-radius:8px; }"
+    },
+    {
+      "name": "Plan Checks",
+      "kind": "custom",
+      "refersTo": "check-plan",
+      "description": "Four chalk checkboxes under the hero; 'día dentro del plan' with a drawn underline when the day is in plan.",
+      "html": "<div class=\"ds-checks\"><span class=\"ds-check is-ok\"><i>&#10003;</i>Calorías</span><span class=\"ds-check is-ok\"><i>&#10003;</i>Proteína</span><span class=\"ds-check\"><i></i>Pasos</span><span class=\"ds-check is-ok\"><i>&#10003;</i>Agua</span></div>",
+      "css": ".ds-checks { display:flex; flex-wrap:wrap; gap:8px 16px; font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-check { display:flex; align-items:center; gap:6px; font-size:14px; color:#959b92; } .ds-check i { display:grid; place-items:center; width:20px; height:20px; border:1px dashed rgb(255 255 255 / 0.25); border-radius:6px; font-style:normal; font-size:12px; font-weight:700; } .ds-check.is-ok { color:#eeede6; } .ds-check.is-ok i { border:1px solid #b4e09a; background:#b4e09a; color:#19211e; }"
+    },
+    {
+      "name": "Recent-food Chip",
+      "kind": "chip",
+      "refersTo": "chip-recent",
+      "description": "Dashed pill after a Caveat 'recientes:' label; one tap re-logs.",
+      "html": "<div class=\"ds-recent\"><span class=\"ds-recent-label\">recientes:</span><button class=\"ds-recent-chip\"><span>🥚</span>Huevo</button><button class=\"ds-recent-chip\"><span>🍌</span>Banana</button></div>",
+      "css": ".ds-recent { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-family:'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-recent-label { font:600 18px/1 'Caveat', cursive; color:#959b92; } .ds-recent-chip { display:flex; align-items:center; gap:6px; padding:4px 10px 4px 6px; border:1px dashed rgb(255 255 255 / 0.18); border-radius:9999px; background:transparent; color:#cdd0c6; font-size:12px; cursor:pointer; transition:border-color 150ms, color 150ms; } .ds-recent-chip span { font-size:14px; line-height:1; } .ds-recent-chip:hover { border-color:rgb(180 224 154 / 0.5); color:#eeede6; } .ds-recent-chip:focus-visible { outline:2px dashed #b4e09a; outline-offset:3px; border-radius:8px; }"
+    },
+    {
+      "name": "Freshness Label",
+      "kind": "chip",
+      "refersTo": "chip-fresh",
+      "description": "Batch-cooking freshness: green fresh, yellow eat soon, red check, sky frozen.",
+      "html": "<span class=\"ds-fresh ds-fresh-ok\">Cocinado hoy</span> <span class=\"ds-fresh ds-fresh-soon\">Hace 3 días · comer pronto</span> <span class=\"ds-fresh ds-fresh-cold\">Congelado hace 4 días</span>",
+      "css": ".ds-fresh { display:inline-block; padding:2px 8px; border-radius:9999px; font:400 11px 'Atkinson Hyperlegible', system-ui, sans-serif; } .ds-fresh-ok { background:rgb(180 224 154 / 0.15); color:#b4e09a; } .ds-fresh-soon { background:rgb(220 180 65 / 0.15); color:#f2d06b; } .ds-fresh-cold { background:rgb(109 187 228 / 0.15); color:#bfe3f5; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Pizarra de feria",
+    "overview": "The app is a market stall's chalkboard for one person's day. A green-black board carries a single huge figure written in chalk (what is left of today's calories), a set of fixed ruled rows beneath it (protein, steps, water), and the \"price\" alongside each row as a one-tap action. Coloured chalks have fixed jobs and never swap them. Navigation sits on a flat wooden ledge, the shelf the chalk rests on. Hand-drawn marks (underlines that draw themselves when a goal is met, tally sticks, rough-edged bars) stand in for the rings, boxes and glows of a fitness app.\n\nIt is used on a phone, one-handed, in daylight, in seconds: open, read what is left and whether the three rows are on track, log with one tap, leave. Density is that of a well-kept board: few type sizes, one protagonist number per screen, rows that stay in the same place every day so they can be compared at a glance. The world rejects black-with-neon and fitness-app rings outright.\n\nThe chalk is texture of the letterforms and strokes, never of the surface. The board has soft, fixed eraser smudges (three faint radial washes on the body) and no grain, no noise, no photographic chalkboard.\n\nThe app installs as a PWA: theme and background colour are `board`, and the icon is a group of chalk tally marks over a green chalk underline on the board.",
+    "keyCharacteristics": [
+      "Green-black board, chalk-white text, fixed-role coloured chalks.",
+      "One protagonist chalk figure per screen (Cabin Sketch), everything else in Atkinson Hyperlegible.",
+      "Caveat handwriting for titles and annotations; the sentence is the title, no labels above it.",
+      "Fixed ruled rows with dashed chalk dividers instead of boxed cards for reading content.",
+      "Flat wooden ledge navigation; centred green \"Crear\" chalk on mobile.",
+      "Motion as chalk behaviour: underlines draw, numbers re-chalk, deletions smudge away like an eraser."
+    ],
+    "rules": [
+      {
+        "name": "The Fixed Chalk Rule",
+        "body": "Each coloured chalk has one meaning for the whole app: sky = protein, yellow = carbs/steps, pink = fat, aqua = water, orange = activity, green = action and goal met, red = excess. A colour is never borrowed for decoration or for a different metric. The only extensions are status: yellow for caution, sky for frozen (see above).",
+        "section": "colors"
+      },
+      {
+        "name": "The Green Is Earned Rule",
+        "body": "Green appears on actions and on goals actually reached. A row's bar turns green only when its goal is met; until then it carries its nutrient chalk.",
+        "section": "colors"
+      },
+      {
+        "name": "The Faint Floor Rule",
+        "body": "No readable text below chalk-faint. chalk-ghost and anything darker are for strokes and separators only.",
+        "section": "colors"
+      },
+      {
+        "name": "The Water Apart Rule",
+        "body": "Water never shares a chart with protein; their hues sit too close for categorical separation.",
+        "section": "colors"
+      },
+      {
+        "name": "The Single Chalk Figure Rule",
+        "body": "Cabin Sketch is used only for figures 48px and larger, and only one display-size figure leads a screen. Never set words, labels or small numbers in it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Sentence Is the Title Rule",
+        "body": "Section titles are a plain handwritten phrase (\"Lo que comiste hoy\", \"En la heladera\"). No eyebrow, kicker or category label sits above them.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Figures Rule",
+        "body": "Any number that lines up with another (row values, list kcal/protein, axes, tables) is tabular.",
+        "section": "typography"
+      },
+      {
+        "name": "The Slate Not Glass Rule",
+        "body": "No blur backdrops, no glows, no coloured shadows. Things that float (the sheet, the toast, the Crear chalk) cast a plain dark shadow; everything else sits flat on the board.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do lead each screen with at most one Cabin Sketch figure (≥48px) and keep all other text in Atkinson Hyperlegible or Caveat.",
+      "Do keep every coloured chalk on its fixed role: sky protein, yellow carbs/steps, pink fat, aqua water, orange activity, green action/goal met, red excess.",
+      "Do use the ruled variant (dashed top rule, no fill) for reading sections and the filled panel only for form-heavy groups and charts.",
+      "Do mark a reached goal by drawing the chalk underline (500ms) and turning the bar green.",
+      "Do animate fills with transform and delete items with the eraser smudge.",
+      "Do keep chart text in chalk tokens, label goal lines, label line ends directly and give ≥2-series charts a legend.",
+      "Do use 1.8px-stroke line icons for interface chrome; food emoji stay as user-chosen content icons for foods and meals.",
+      "Do keep readable text at `chalk-faint` (~5.2:1) or brighter and at 11px or larger.",
+      "Do confirm everyday logging actions with the toast and offer \"Deshacer\" when they can be reversed.",
+      "Do give a suggestion or warning the dashed notice form with one action, tinted by meaning."
+    ],
+    "donts": [
+      "Don't use black-and-neon styling, glows, or progress rings; bars are rough chalk strokes and goals are underlines and tallies.",
+      "Don't add grain, noise or a photographic chalkboard texture; the board carries only its three fixed eraser smudges.",
+      "Don't imitate wood grain on the ledge; it is a flat plank colour with a lighter top edge.",
+      "Don't put an eyebrow, kicker or category label above a section title.",
+      "Don't set body copy, labels or numbers under 48px in Cabin Sketch.",
+      "Don't use a data colour for UI text or a UI chalk for chart marks, and don't put water and protein in the same chart.",
+      "Don't mark the active tab with a filled pill on mobile; it gets the chalk underline.",
+      "Don't animate tab switches or chart entry.",
+      "Don't nest a filled panel inside another panel."
+    ]
+  }
+}
