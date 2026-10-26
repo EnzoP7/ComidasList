@@ -8,6 +8,8 @@ import { recipeCost } from './lib/prices'
 import { buildCatalog, catalogVariants } from './lib/foods'
 import { FoodsContext } from './lib/foodsContext'
 import { takeDailySnapshot } from './lib/snapshots'
+import { startSync, useSyncStatus } from './lib/sync'
+import { SyncBadge } from './components/CloudSync'
 import { useToast } from './components/Toast'
 import { ChalkUnderline, Icon } from './components/ui'
 import Dashboard from './components/Dashboard'
@@ -56,11 +58,13 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const toast = useToast()
+  const syncStatus = useSyncStatus()
 
   // Copia automática del día (últimas 14, en IndexedDB) y pedido de almacenamiento persistente
   useEffect(() => {
     takeDailySnapshot(todayKey())
     requestPersistence()
+    startSync()
     const onError = () => setSaveError(true)
     window.addEventListener(SAVE_ERROR_EVENT, onError)
     return () => window.removeEventListener(SAVE_ERROR_EVENT, onError)
@@ -278,6 +282,9 @@ export default function App() {
             <button className="text-left" onClick={() => go('today')}>
               <p className="font-hand text-[30px] font-bold leading-none text-zinc-50">Recomp 2027</p>
               <p className="mt-0.5 text-xs text-zinc-500">Adiós flotadores, un día a la vez</p>
+            </button>
+            <button onClick={() => go('settings')} aria-label="Estado de la nube" className="pb-1">
+              <SyncBadge status={syncStatus} />
             </button>
           </div>
 

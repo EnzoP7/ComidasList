@@ -63,12 +63,14 @@ Es un **proyecto personal y de presentación**: no se comercializa ni tiene cuen
 | **Estilos** | Tailwind CSS 4, con un sistema visual propio: *"Pizarra de feria"* (tiza sobre pizarra verde y un listón de madera como navegación) |
 | **Gráficos** | Recharts, cargado de forma diferida |
 | **Código de barras** | ZXing (`@zxing/browser`), cargado solo al abrir la cámara |
-| **Datos** | Sin backend. `localStorage` para los registros e IndexedDB para las copias automáticas y las fotos |
-| **Tests** | Vitest: 82 tests sobre los cálculos (plan, macros, precios, progresión, proyecciones, copias de seguridad, códigos de barras) |
+| **Datos** | `localStorage` como fuente inmediata (funciona sin internet) e IndexedDB para copias automáticas y fotos |
+| **Nube** | Sincronización opcional con [Turso](https://turso.tech) (SQLite) a través de una función serverless de Vercel protegida con contraseña |
+| **Tests** | Vitest: 88 tests sobre los cálculos (plan, macros, precios, progresión, proyecciones, copias, códigos de barras) y el servidor de sincronización |
 | **Offline** | PWA con service worker (`vite-plugin-pwa`) |
 
 ### Decisiones que vale la pena mencionar
-- **Sin servidor, a propósito.** No hay cuentas ni datos personales fuera del navegador. A cambio, la app se toma en serio no perder datos: pide almacenamiento persistente, avisa si un guardado falla, hace una copia automática por día (las últimas 14) y valida cada importación antes de escribir nada.
+- **Primero el navegador, después la nube.** Todo se guarda al instante en el navegador y la app funciona sin internet. Si conectás la nube, cada cambio se sube a los pocos segundos y gana la versión más nueva de cada dato. La app además pide almacenamiento persistente, avisa si un guardado falla, hace una copia automática por día y valida cada importación antes de escribir nada.
+- **El secreto nunca llega al navegador.** El token de Turso y la contraseña viven en variables de entorno de Vercel; el navegador solo habla con `/api/sync`, que exige la contraseña y frena los intentos fallidos.
 - **Nutrientes por gramo de alimento crudo.** Cocinar cambia el peso, no los nutrientes: con un factor de cocción por alimento, 280 g de arroz cocido y 100 g crudo dan lo mismo.
 - **Las estimaciones se presentan como estimaciones.** La tendencia de 7 días manda sobre el pesaje suelto, y las proyecciones avisan que el ritmo se frena al final.
 - **Mobile-first y con una mano.** Navegación inferior con *Crear* en el centro, objetivos táctiles grandes y movimiento que respeta `prefers-reduced-motion`.
@@ -76,6 +78,9 @@ Es un **proyecto personal y de presentación**: no se comercializa ni tiene cuen
 ### Estructura
 
 ```
+api/
+├── sync.js                 función de Vercel: /api/sync (Turso)
+└── _sync.js                lógica del endpoint (gana la edición más nueva)
 src/
 ├── App.jsx                 navegación, estado global y metas por día
 ├── components/             pantallas (Hoy, Crear, Heladera, Progreso, Ajustes…) y piezas de UI
@@ -86,6 +91,7 @@ src/
 │   ├── barcode.js          búsqueda en cadena por código de barras
 │   ├── foods.js, meals.js  catálogo, crudo/cocido y cálculo de comidas
 │   ├── storage.js, idb.js  persistencia, copias, validación y migraciones
+│   ├── sync.js             sincronización con la nube
 │   └── *.test.js           tests
 └── data/foodDatabase.js    base de alimentos del mercado uruguayo
 ```
@@ -105,7 +111,25 @@ npm test           # tests
 npm run build      # versión final en dist/
 ```
 
-Todo se guarda en el navegador donde la abrís. Para pasar los datos a otro navegador: **Ajustes → Exportar copia** e **Importar copia**.
+Sin nube, todo se guarda en el navegador donde la abrís (**Ajustes → Exportar copia** e **Importar copia** para pasar los datos a mano).
+
+Para probar la sincronización en local, copiá `.env.example` como `.env.local` con `TURSO_DATABASE_URL=file:.data/dev.db` y una `APP_PASSWORD`: `npm run dev` corre la misma función que Vercel.
+
+## Publicarla con la nube (gratis)
+
+1. **Turso:** creá una cuenta en [turso.tech](https://turso.tech), creá una base y copiá su **URL** (`libsql://…`) y un **token** (*Create Token*). La tabla se crea sola.
+2. **Vercel:** en [vercel.com](https://vercel.com), *Add New → Project* e importá este repositorio. Vercel detecta Vite solo.
+3. En el proyecto de Vercel, **Settings → Environment Variables**, cargá:
+
+   | Variable | Valor |
+   |---|---|
+   | `TURSO_DATABASE_URL` | la URL de la base |
+   | `TURSO_AUTH_TOKEN` | el token |
+   | `APP_PASSWORD` | tu contraseña para entrar desde la app |
+
+4. **Redeploy**, abrí la URL que te da Vercel y en **Ajustes → Nube** conectá con tu contraseña. En cada navegador nuevo se hace una sola vez.
+
+Las fotos de progreso no se suben: quedan en el navegador donde las sacaste.
 
 ---
 

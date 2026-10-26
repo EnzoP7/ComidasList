@@ -6,6 +6,7 @@ import { addDays, formatLong, fromKey, todayKey } from '../lib/date'
 import { ACTIVITY_LEVELS, DEFAULT_SETTINGS, dayTotals, latestWeight, waterTotal } from '../lib/model'
 import { adaptiveTdee, startBreak } from '../lib/progress'
 import { Button, Card, Input, PageHeader, SectionTitle, fmt, num } from './ui'
+import CloudSync from './CloudSync'
 
 const MACRO_COLORS = { protein: 'bg-sky-400', fat: 'bg-pink-400', carbs: 'bg-amber-400' }
 
@@ -296,6 +297,8 @@ export default function Settings({ settings, plan, phase, logs, setSettings }) {
           ) : null
         })()}
       </Card>
+
+      <CloudSync />
 
       <Card>
         <SectionTitle>Copias automáticas</SectionTitle>

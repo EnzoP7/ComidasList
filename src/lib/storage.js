@@ -15,10 +15,18 @@ export function load(key, fallback) {
 // Si el guardado falla (almacenamiento lleno o bloqueado) se avisa con un evento:
 // la app muestra un cartel para que se exporte una copia antes de perder datos.
 export const SAVE_ERROR_EVENT = 'recomp:save-error'
+// Un dato cambió de verdad en este navegador (la sincronización lo sube)
+export const LOCAL_CHANGE_EVENT = 'recomp:local-change'
+// Llegaron datos más nuevos de la nube (los estados de React se recargan)
+export const REMOTE_UPDATE_EVENT = 'recomp:remote-update'
 
 export function save(key, value) {
   try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(value))
+    const raw = JSON.stringify(value)
+    // Sin cambios no se escribe ni se avisa: así abrir la app no cuenta como una edición
+    if (localStorage.getItem(PREFIX + key) === raw) return true
+    localStorage.setItem(PREFIX + key, raw)
+    if (STORAGE_KEYS.includes(key)) globalThis.dispatchEvent?.(new CustomEvent(LOCAL_CHANGE_EVENT, { detail: { key } }))
     return true
   } catch (err) {
     globalThis.dispatchEvent?.(new CustomEvent(SAVE_ERROR_EVENT, { detail: { key, error: err } }))
@@ -30,8 +38,18 @@ export function save(key, value) {
 export function usePersistentState(key, fallback) {
   const [value, setValue] = useState(() => load(key, fallback))
   useEffect(() => { save(key, value) }, [key, value])
+  // Si la sincronización trae una versión más nueva de esta clave, se toma
+  useEffect(() => {
+    const onRemote = (e) => { if (e.detail?.keys?.includes(key)) setValue(load(key, fallback)) }
+    globalThis.addEventListener?.(REMOTE_UPDATE_EVENT, onRemote)
+    return () => globalThis.removeEventListener?.(REMOTE_UPDATE_EVENT, onRemote)
+  }, [key])
   return [value, setValue]
 }
+
+// Acceso directo al texto guardado (la sincronización lo sube y baja tal cual)
+export const loadRaw = (key) => localStorage.getItem(PREFIX + key)
+export const saveRaw = (key, raw) => localStorage.setItem(PREFIX + key, raw)
 
 // Pide al navegador que no borre los datos de la app cuando necesite espacio
 export async function requestPersistence() {

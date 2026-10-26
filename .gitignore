@@ -1,2 +1,8 @@
 node_modules
 dist
+# Secretos y base local de desarrollo (nunca al repo)
+.env
+.env.*
+!.env.example
+.data
+.vercel
