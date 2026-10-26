@@ -69,7 +69,7 @@ Es un **proyecto personal y de presentación**: no se comercializa ni tiene cuen
 | **Offline** | PWA con service worker (`vite-plugin-pwa`) |
 
 ### Decisiones que vale la pena mencionar
-- **Primero el navegador, después la nube.** Todo se guarda al instante en el navegador y la app funciona sin internet. Si conectás la nube, cada cambio se sube a los pocos segundos y gana la versión más nueva de cada dato. La app además pide almacenamiento persistente, avisa si un guardado falla, hace una copia automática por día y valida cada importación antes de escribir nada.
+- **Primero el navegador, después la nube.** Todo se guarda al instante en el navegador y la app funciona sin internet. Cada cambio se sube a los pocos segundos. La versión de cada dato la pone el servidor al recibirlo, así que el orden no depende del reloj de cada dispositivo: los cambios pendientes de un navegador nunca se pisan con datos de la nube, se suben y ganan. La app además pide almacenamiento persistente, avisa si un guardado falla, hace una copia automática por día y valida cada importación antes de escribir nada.
 - **El secreto nunca llega al navegador.** El token de Turso y la contraseña viven en variables de entorno de Vercel; el navegador solo habla con `/api/sync`, que exige la contraseña y frena los intentos fallidos.
 - **Nutrientes por gramo de alimento crudo.** Cocinar cambia el peso, no los nutrientes: con un factor de cocción por alimento, 280 g de arroz cocido y 100 g crudo dan lo mismo.
 - **Las estimaciones se presentan como estimaciones.** La tendencia de 7 días manda sobre el pesaje suelto, y las proyecciones avisan que el ritmo se frena al final.
@@ -127,7 +127,7 @@ Para probar la sincronización en local, copiá `.env.example` como `.env.local`
    | `TURSO_AUTH_TOKEN` | el token |
    | `APP_PASSWORD` | tu contraseña para entrar desde la app |
 
-4. **Redeploy**, abrí la URL que te da Vercel y en **Ajustes → Nube** conectá con tu contraseña. En cada navegador nuevo se hace una sola vez.
+4. **Redeploy** y abrí la URL que te da Vercel: la app pide la contraseña antes de mostrar nada. Cada navegador la pide una sola vez; **Ajustes → Nube → Cerrar sesión** la vuelve a pedir. Si el navegador y la nube tienen datos distintos, la primera vez te pregunta con cuáles quedarte.
 
 Las fotos de progreso no se suben: quedan en el navegador donde las sacaste.
 

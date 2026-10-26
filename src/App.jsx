@@ -9,7 +9,7 @@ import { buildCatalog, catalogVariants } from './lib/foods'
 import { FoodsContext } from './lib/foodsContext'
 import { takeDailySnapshot } from './lib/snapshots'
 import { startSync, useSyncStatus } from './lib/sync'
-import { SyncBadge } from './components/CloudSync'
+import { LoginScreen, SyncBadge } from './components/CloudSync'
 import { useToast } from './components/Toast'
 import { ChalkUnderline, Icon } from './components/ui'
 import Dashboard from './components/Dashboard'
@@ -39,7 +39,14 @@ const TABS = [
 // En móvil: Hoy, Heladera, [Crear], Agua en el listón; el resto va en "Más"
 const MOBILE_MAIN = ['today', 'build', 'batch', 'water']
 
+// Sin sesión iniciada en este navegador se pide la contraseña antes de mostrar nada
 export default function App() {
+  const syncStatus = useSyncStatus()
+  const locked = syncStatus.state === 'off' || syncStatus.state === 'connecting'
+  return locked ? <LoginScreen /> : <RecompApp syncStatus={syncStatus} />
+}
+
+function RecompApp({ syncStatus }) {
   const [tab, setTab] = usePersistentState('ui:tab', 'today')
   const [settingsRaw, setSettings] = usePersistentState('settings', DEFAULT_SETTINGS)
   const [logs, setLogs] = usePersistentState('logs', {})
@@ -58,7 +65,6 @@ export default function App() {
   const [moreOpen, setMoreOpen] = useState(false)
   const [saveError, setSaveError] = useState(false)
   const toast = useToast()
-  const syncStatus = useSyncStatus()
 
   // Copia automática del día (últimas 14, en IndexedDB) y pedido de almacenamiento persistente
   useEffect(() => {

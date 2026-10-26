@@ -1,8 +1,9 @@
 // Lógica del endpoint de sincronización (Turso / libSQL). Vercel no expone archivos con "_" como rutas.
 //
-// GET  /api/sync            → { items: { [key]: { value, updatedAt } }, serverTime }
-// PUT  /api/sync  { items } → guarda cada clave solo si es más nueva que la de la nube
-//                             (gana la última edición) y devuelve las que la nube tenía más nuevas.
+// GET  /api/sync            → { items: { [key]: { value, updatedAt } } }
+// PUT  /api/sync  { items } → guarda cada clave con la hora del servidor (gana lo último que llega)
+//                             y devuelve { saved: { [key]: updatedAt } }.
+// La hora la pone siempre el servidor: los relojes de cada dispositivo no se usan para decidir.
 // Todas las llamadas piden "Authorization: Bearer <contraseña>".
 import { timingSafeEqual, createHash } from 'node:crypto'
 
@@ -44,7 +45,7 @@ export function createSyncHandler({ db, password }) {
     }
     try {
       await ensureSchema(db)
-      if (request.method === 'GET') return json({ items: await readAll(db), serverTime: Date.now() })
+      if (request.method === 'GET') return json({ items: await readAll(db) })
       if (request.method === 'PUT') return json(await writeItems(db, await request.json()))
       return json({ error: 'Método no permitido' }, 405)
     } catch (err) {
@@ -67,19 +68,15 @@ async function writeItems(db, body) {
     if (!SYNC_KEYS.includes(it?.key)) throw badRequest(`Clave no permitida: ${it?.key}`)
     if (typeof it.value !== 'string' || it.value.length > MAX_VALUE_BYTES) throw badRequest(`Valor inválido en ${it.key}`)
     try { JSON.parse(it.value) } catch { throw badRequest(`El valor de ${it.key} no es JSON`) }
-    if (!Number.isFinite(it.updatedAt)) throw badRequest(`Fecha inválida en ${it.key}`)
   }
-  // Gana la última edición: solo se pisa si lo que llega es más nuevo que lo guardado
+  // Versión = hora del servidor, siempre creciente por clave (aunque lleguen dos en el mismo milisegundo)
+  const now = Date.now()
   await db.batch(items.map((it) => ({
     sql: `INSERT INTO app_data (key, value, updated_at) VALUES (?, ?, ?)
-          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-          WHERE excluded.updated_at > app_data.updated_at`,
-    args: [it.key, it.value, Math.round(it.updatedAt)],
+          ON CONFLICT(key) DO UPDATE SET value = excluded.value,
+            updated_at = MAX(excluded.updated_at, app_data.updated_at + 1)`,
+    args: [it.key, it.value, now],
   })), 'write')
-  // Lo que la nube tenía más nuevo vuelve para que el navegador lo tome
   const all = await readAll(db)
-  const newer = Object.fromEntries(items
-    .filter((it) => all[it.key] && all[it.key].updatedAt > it.updatedAt)
-    .map((it) => [it.key, all[it.key]]))
-  return { ok: true, newer, serverTime: Date.now() }
+  return { ok: true, saved: Object.fromEntries(items.map((it) => [it.key, all[it.key].updatedAt])) }
 }
